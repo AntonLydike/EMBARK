@@ -52,6 +52,7 @@ _start:
             la      a2, __bss_end
             jal     memset
 
+            // jump to init
             jal     init
             
             // halt machine after returning from init
