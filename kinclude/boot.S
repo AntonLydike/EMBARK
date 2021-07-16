@@ -46,9 +46,18 @@ _start:
             la      sp, stack_top
             la      gp, __global_pointer$
 .option pop
+            // clear kernel bss section
+            mv      a0, zero
+            la      a1, __bss_start
+            la      a2, __bss_end
+            jal     memset
+
             jal     init
             
-            // halt machine
+            // halt machine after returning from init
+            csrwi   0x789, 1
+1:
+            j       1b
 
 .align 4
 trap_vector:
@@ -101,3 +110,37 @@ trap_vector:
             la      gp, __global_pointer$
 .option pop
             jal     trap_handle
+
+// write a0 to memory starting at a1, until a2 (both must be four byte aligned)
+// this uses a loop which writes 32 (numbytes) bytes at a time
+// to prevent overshooting the end, we first calulate how many instructions to 
+// skip of the first iteration of the loop. this way, (a2 - a1) is a multiple of
+// (numbytes) when we reach the blt instruction for the first time. 
+// this math works so good, because we write 4 bytes of mem, in 4 bytes of 
+// instructions. Therefore instruction bytes to skip = write bytes to skip
+memset:
+// bytes to skip = numbytes - ((a2 - a1) % numbytes)
+            sub     t1, a2, a1      // t1 = a2 - a1
+            li      t2, 32          // = numbytes
+            rem     t1, t1, t2      // t1 = (a2 - a1) % numbytes
+            beq     zero, t1, 1f    // skip 0 bytes? => begin loop
+            sub     t2, t2, t1      // t2 = numbytes - ((a2 - a1) % numbytes)
+                                    // = bytes to skip
+            sub     a1, a1, t2      // subtract skipped bytes from a2
+                                    // to account for the skipped instruction
+                                    // when we reach the addi, a1, a1, 32 inst.
+            auipc   t1, 0           // calc jump 
+            add     t1, t2, t1      // add calulated offset
+            jalr    zero, t1, 12    // skip the instructions by forward-jumping
+1:
+            sw      a0, 0(a1)
+            sw      a0, 4(a1)
+            sw      a0, 8(a1)
+            sw      a0, 12(a1)
+            sw      a0, 16(a1)
+            sw      a0, 20(a1)
+            sw      a0, 24(a1)
+            sw      a0, 28(a1)
+            addi    a1, a1, 32
+            blt     a1, a2, 1b
+            ret
