@@ -113,6 +113,25 @@ trap_vector:
 .option pop
             jal     trap_handle
 
+
+#ifdef __risc_no_ext
+// "dumb" memset, if RV32M is not present on the target
+// since memset is currently only used at startup, the performance implications
+// should be minimal.
+memset:
+    bge     a1, a2, 2f
+1:
+    sw      a0, 0(a1)
+    addi    a1, a1, 4
+    blt     a1, a2, 1b
+2:
+    ret
+
+#else
+
+// "smart" memset, writing 32 bytes at a time. uses RV32M. If not present,
+// the "dumb" fallback above is used.
+
 // write a0 to memory starting at a1, until a2 (both must be four byte aligned)
 // this uses a loop which writes 32 (numbytes) bytes at a time
 // to prevent overshooting the end, we first calulate how many instructions to 
