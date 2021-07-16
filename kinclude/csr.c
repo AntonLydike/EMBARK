@@ -6,9 +6,9 @@ void write_mtimecmp(unsigned long long int mtimecmp) {
     unsigned int lower = mtimecmp;
     unsigned int higher = mtimecmp >> 32;
     __asm__(
-        "sw %2, %0\n"
-        "sw %3, %1" :: 
-        "I"(TIMECMP_MEM_ADDR),"I"(TIMECMP_MEM_ADDR + 4),
+        "sw %1, 0(%0)\n"
+        "sw %2, 4(%0)" :: 
+        "r"(TIMECMP_MEM_ADDR),
         "r"(lower), "r"(higher)
     );
 }

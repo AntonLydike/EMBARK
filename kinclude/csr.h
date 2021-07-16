@@ -16,9 +16,12 @@
 #define CSR_MTIMECMP    0x780       // mtimecmp register for timer interrupts
 #define CSR_MTIMECMPH   0x781       // mtimecmph register for timer interrupts
 
+#ifndef CSR_HALT
 #define CSR_HALT        0x789       // writing nonzero value here will halt the cpu
+#endif
 
-#define TIMECMP_MEM_ADDR 0xffff
+// do not define C macros and other C stuff when this is included inside assembly
+#ifndef __assembly
 
 #define CSR_READ(csr_id, result) {\
     __asm__ ("csrr %0, %1" : "=r"((result)) : "I"((csr_id))); \
@@ -34,5 +37,7 @@
 
 void write_mtimecmp(unsigned long long int mtimecmp);
 unsigned long long int read_time();
+
+#endif
 
 #endif

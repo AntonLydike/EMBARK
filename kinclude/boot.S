@@ -1,3 +1,4 @@
+#include "csr.h"
 .section    .stack
 
 stack_bottom:
@@ -9,11 +10,11 @@ stack_top:
 
 
 // Set up all the CSR mstatus_offsets
-.set        mstatus,    0x300       // machine status
-.set        mscratch,   0x340
-.set        mtvec,      0x305       // machine trap handler
-.set        mcause,     0x342       // machine trap cause
-.set        mtval,      0x343       // machine bad address or instruction
+// .set        mstatus,    0x300       // machine status
+// .set        mscratch,   0x340
+// .set        mtvec,      0x305       // machine trap handler
+// .set        mcause,     0x342       // machine trap cause
+// .set        mtval,      0x343       // machine bad address or instruction
 // .set        misa,       0x301       // machine ISA
 // .set        mie,        0x304       // machine interrupt enable
 // .set        mip,        0x344       // machine interrupt pending
@@ -30,7 +31,7 @@ _start:
             // setup a0 to hold |trap tbl addr|mode|
             //              len:| 30          | 2  |
             la      a0, trap_vector
-            csrrw   zero, mtvec, a0         // write a0 into mtvec csr entry
+            csrrw   zero, CSR_MTVEC, a0         // write a0 into mtvec csr entry
             // enable interrupts in mstatus
             // this is the setting loaded:
             // [07]    MPIE    =   1  - we want to enable interrupts with mret
@@ -38,7 +39,7 @@ _start:
             // [11:12] MPP     =   0  - we want to return into user mode
             // all other bits should be zero
             li      a0, 0x80
-            csrrw   zero, mstatus, a0         // write to mstatus
+            csrrw   zero, CSR_MSTATUS, a0         // write to mstatus
             // write
 .option push
 .option norelax
@@ -56,7 +57,7 @@ _start:
             jal     init
             
             // halt machine after returning from init
-            csrwi   0x789, 1
+            csrwi   CSR_HALT, 1
 1:
             j       1b
 
@@ -119,8 +120,8 @@ trap_vector:
 // (numbytes) when we reach the blt instruction for the first time. 
 // this math works so good, because we write 4 bytes of mem, in 4 bytes of 
 // instructions. Therefore instruction bytes to skip = write bytes to skip
-memset:
 // bytes to skip = numbytes - ((a2 - a1) % numbytes)
+memset:
             sub     t1, a2, a1      // t1 = a2 - a1
             li      t2, 32          // = numbytes
             rem     t1, t1, t2      // t1 = (a2 - a1) % numbytes
@@ -130,9 +131,11 @@ memset:
             sub     a1, a1, t2      // subtract skipped bytes from a2
                                     // to account for the skipped instruction
                                     // when we reach the addi, a1, a1, 32 inst.
-            auipc   t1, 0           // calc jump 
+            auipc   t1, 0           // get current address
             add     t1, t2, t1      // add calulated offset
             jalr    zero, t1, 12    // skip the instructions by forward-jumping
+                                    // the 12 is added to compensate for the 
+                                    // three instructions auipc, add, jalr
 1:
             sw      a0, 0(a1)
             sw      a0, 4(a1)
@@ -145,3 +148,4 @@ memset:
             addi    a1, a1, 32
             blt     a1, a2, 1b
             ret
+#endif
