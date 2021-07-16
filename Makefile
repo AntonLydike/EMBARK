@@ -13,7 +13,7 @@ GCC_PREF=riscv32-unknown-elf-
 CC=$(GCC_PREF)gcc
 OBJDUMP=$(GCC_PREF)objdump
 CFLAGS=-I$(KLIBDIR) -march=rv32im -O3
-KERNEL_CFLAGS=-nostdlib
+KERNEL_CFLAGS=-nostdlib -T linker.ld
 
 # dependencies that need to be built:
 _DEPS = ecall.c csr.c mutex.c sched.c

@@ -5,7 +5,7 @@ stack_bottom:
 stack_top:
 
 
-.section    .text
+.section    .text._start
 
 
 // Set up all the CSR mstatus_offsets
