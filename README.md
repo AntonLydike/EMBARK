@@ -7,7 +7,7 @@ EMBARK is a small kernel, designed for educational projects. It has very limited
 
 ## The toolchain:
 
-I am using the [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain), configured with `--with-arch=rv32im --disable-linux --disable-gdb --disable-multilib`.
+I am using the [riscv-gnu-toolchain](https://github.com/riscv/riscv-gnu-toolchain), configured with `--with-arch=rv32im --disable-linux --disable-gdb --disable-multilib` and built using `make -j <number of threads>`.
 
 ## The Makefile:
 
