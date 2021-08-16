@@ -1,5 +1,4 @@
-# simple makefile for this kernel project
-# This is BAD. it should be reworked before anyone else uses this.
+# small makefile for compiling the kernel
 
 # kernel lib dir
 KLIBDIR=kinclude
@@ -12,9 +11,9 @@ GCC_PREF=riscv32-unknown-elf-
 
 CC=$(GCC_PREF)gcc
 OBJDUMP=$(GCC_PREF)objdump
-CFLAGS=-I$(KLIBDIR) -O3 -MD
+CFLAGS=-I$(KLIBDIR) -O3 -MD -mcmodel=medany -mexplicit-relocs
 KERNEL_CFLAGS=-nostdlib -T linker.ld
-ARCH = rv32im
+ARCH = rv32im							# here you 
 
 ### Build configuration:
 
@@ -41,20 +40,29 @@ DEPS  = $(patsubst %,$(KLIBDIR)/%,$(_DEPS))
 OBJ  = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
+.PHONY: clean
+.PHONY: directories
+.PHONY: kernel
+
+directories:
+	mkdir -p $(ODIR) $(TARGET)
+
 $(ODIR)/boot.o: $(KLIBDIR)/boot.S
-	$(CC) -c -o $@ $(KLIBDIR)/boot.S $(CFLAGS) -D__assembly=1 
+	$(CC) -c -o $@ $(KLIBDIR)/boot.S $(CFLAGS) -D__assembly
 
 $(ODIR)/%.o: $(KLIBDIR)/%.c $(KLIBDIR)/%.h
 	$(CC) -c -o $@ $(KLIBDIR)/$*.c $(CFLAGS)
 
-kernel: $(OBJ)
-	mkdir -p $(TARGET)
-	$(CC) -o $(TARGET)/$@ $^ kernel.c $(CFLAGS) $(KERNEL_CFLAGS)
+_kernel: $(OBJ)
+	$(CC) -o $(TARGET)/kernel $^ kernel.c $(CFLAGS) $(KERNEL_CFLAGS)
+
+kernel: directories _kernel
 
 kernel-dump: kernel
 	$(OBJDUMP) -SFlDf $(TARGET)/kernel > $(TARGET)/kernel-objects
 
-.PHONY: clean
+all: kernel-dump
+
 
 clean:
 	rm -rf $(ODIR) *~ $(KLIBDIR)/*~ $(TARGET)
