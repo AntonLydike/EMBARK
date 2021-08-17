@@ -2,7 +2,8 @@ OUTPUT_ARCH("riscv")
 ENTRY(_start)
 SECTIONS
 {
-    . = 0x00000100;
+    /* start at an address > 12bit to ensure all addresses are loaded using auipc+addi instead of only addi (which is not relocatable)*/
+    . = 0xffffff; 
     .text : 
     {
         *(.text._start)
