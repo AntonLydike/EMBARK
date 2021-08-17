@@ -8,7 +8,7 @@ enum process_status {
     PROC_RDY        = 1,
     PROC_WAIT_PROC  = 2,
     PROC_WAIT_SLEEP = 3,
-}
+};
 
 // process structure:
 typedef struct ProcessControlBlock ProcessControlBlock;
