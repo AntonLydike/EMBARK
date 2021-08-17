@@ -33,12 +33,12 @@ _start:
 .option norelax
             // init sp and gp
             la      sp, stack_top
-            la      gp, __global_pointer$
+            la      gp, _gp
 .option pop
             // clear kernel bss section
             mv      a0, zero
-            la      a1, __bss_start
-            la      a2, __bss_end
+            la      a1, _bss_start
+            la      a2, _bss_end
             jal     memset
 
             // jump to init
@@ -97,7 +97,7 @@ trap_vector:
 .option push
 .option norelax
             la      sp, stack_top
-            la      gp, __global_pointer$
+            la      gp, _gp
 .option pop
             jal     trap_handle
 
