@@ -59,7 +59,7 @@ _kernel: $(OBJ)
 kernel: directories _kernel
 
 kernel-dump: kernel
-	$(OBJDUMP) -SFlDf $(TARGET)/kernel > $(TARGET)/kernel-objects
+	$(OBJDUMP) -SFldft $(TARGET)/kernel > $(TARGET)/kernel-objects
 
 all: kernel-dump
 
