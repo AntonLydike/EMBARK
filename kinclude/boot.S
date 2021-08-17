@@ -16,10 +16,6 @@ stack_top:
 
 .global     _start
 _start:
-            // setup a0 to hold |trap tbl addr|mode|
-            //              len:| 30          | 2  |
-            la      a0, trap_vector
-            csrrw   zero, CSR_MTVEC, a0         // write a0 into mtvec csr entry
             // enable interrupts in mstatus
             // this is the setting loaded:
             // [07]    MPIE    =   1  - we want to enable interrupts with mret
@@ -28,6 +24,10 @@ _start:
             // all other bits should be zero
             li      a0, 0x80
             csrrw   zero, CSR_MSTATUS, a0         // write to mstatus
+            // setup a0 to hold |trap tbl addr|mode|
+            //              len:| 30          | 2  |
+            la      a0, trap_vector
+            csrrw   zero, CSR_MTVEC, a0         // write a0 into mtvec csr entry
             // write
 .option push
 .option norelax
