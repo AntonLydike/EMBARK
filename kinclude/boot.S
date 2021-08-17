@@ -5,19 +5,7 @@ stack_bottom:
 .space      4096
 stack_top:
 
-
 .section    .text._start
-
-
-// Set up all the CSR mstatus_offsets
-// .set        mstatus,    0x300       // machine status
-// .set        mscratch,   0x340
-// .set        mtvec,      0x305       // machine trap handler
-// .set        mcause,     0x342       // machine trap cause
-// .set        mtval,      0x343       // machine bad address or instruction
-// .set        misa,       0x301       // machine ISA
-// .set        mie,        0x304       // machine interrupt enable
-// .set        mip,        0x344       // machine interrupt pending
 
 .extern     init
 .type       init, @function

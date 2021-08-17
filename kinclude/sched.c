@@ -128,12 +128,12 @@ int  scheduler_index_from_pid(int pid)
     return -1;
 }
 
-int  scheduler_create_process(int binid) 
-{
-    return 0;
-}
-
 int* get_current_process_registers() 
 {
     return processes[current_process_index].regs;
+}
+
+ProcessControlBlock* get_current_process() 
+{
+    return &processes[current_process_index];
 }

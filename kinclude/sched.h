@@ -3,12 +3,12 @@
 
 #include "../kernel.h"
 
-// process statuses:
-#define PROC_DEAD 0
-#define PROC_RDY  1
-#define PROC_WAIT_LOCK  2
-#define PROC_WAIT_PROC  3
-#define PROC_WAIT_SLEEP 4
+enum process_status {
+    PROC_DEAD       = 0,
+    PROC_RDY        = 1,
+    PROC_WAIT_PROC  = 2,
+    PROC_WAIT_SLEEP = 3,
+}
 
 // process structure:
 typedef struct ProcessControlBlock ProcessControlBlock;
@@ -17,8 +17,7 @@ struct ProcessControlBlock {
     int pc;
     int regs[31];
     // scheduling information
-    int status;
-    int requested_lock;
+    enum process_status status;
     ProcessControlBlock *waiting_for_process;
     unsigned long long int asleep_until;
 };
@@ -33,5 +32,6 @@ void __attribute__((noreturn)) scheduler_run_next();
 void __attribute__((noreturn)) scheduler_switch_to(int proc_index);
 int  scheduler_index_from_pid(int pid);
 int* get_current_process_registers();
+ProcessControlBlock* get_current_process();
 
 #endif
