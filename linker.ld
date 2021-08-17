@@ -9,7 +9,7 @@ SECTIONS
         *(.text._start)
         *(.text)
     } 
-    .sdata : 
+    .data : 
     {
         __global_pointer$ = . + 0x800;
         *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
