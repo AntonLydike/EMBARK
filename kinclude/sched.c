@@ -1,6 +1,5 @@
 #include "../kernel.h"
 #include "sched.h"
-#include "mutex.h"
 #include "csr.h"
 
 
@@ -46,20 +45,6 @@ int  scheduler_select_free()
                         return (current_process_index + i) % PROCESS_COUNT;
                     }
                     timeout_available = true;
-                }
-            }
-
-            if (pcb->status == PROC_WAIT_LOCK) {
-                if (pcb->asleep_until != 0) {
-                    if (pcb->asleep_until < mtime) {
-                        // set process return args!
-                        return (current_process_index + i) % PROCESS_COUNT;
-                    }
-                    timeout_available = true;
-                }
-
-                if (!mutex_is_locked(pcb->requested_lock)) {
-                    return (current_process_index + i) % PROCESS_COUNT;
                 }
             }
         }

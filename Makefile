@@ -30,10 +30,10 @@ ARCH = rv32im							# here you
 CFLAGS += -march=$(ARCH)
 
 # dependencies that need to be built:
-_DEPS = ecall.c csr.c mutex.c sched.c
+_DEPS = ecall.c csr.c sched.c
 
 # dependencies as object files:
-_OBJ = ecall.o mutex.o sched.o boot.o csr.o
+_OBJ = ecall.o sched.o boot.o csr.o
 
 
 DEPS  = $(patsubst %,$(KLIBDIR)/%,$(_DEPS))
