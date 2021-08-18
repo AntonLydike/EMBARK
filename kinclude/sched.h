@@ -16,6 +16,7 @@ struct ProcessControlBlock {
     int pid;
     int pc;
     int regs[31];
+    int exit_code;
     // scheduling information
     enum process_status status;
     ProcessControlBlock *waiting_for_process;
@@ -29,6 +30,7 @@ extern ProcessControlBlock processes[PROCESS_COUNT];
 int  scheduler_select_free();
 int  scheduler_create_process(int binid);
 void __attribute__((noreturn)) scheduler_run_next();
+void __attribute__((noreturn)) scheduler_try_return_to(ProcessControlBlock*);
 void __attribute__((noreturn)) scheduler_switch_to(int proc_index);
 int  scheduler_index_from_pid(int pid);
 int* get_current_process_registers();

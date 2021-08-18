@@ -88,6 +88,10 @@ trap_vector:
             mv      a0,  t6             // save struct address to already saved register
             csrrw   t6,  mscratch, t6   // load original t6 register from mscratch
             sw      t6,  120(a0)        // save original t6 register
+            // save mepc to pc field in pcb
+            csrr    t6,  mepc
+            sw      t6,  -4(a0)
+            // load mcause and mtval values in the correct registers for call to trap_handle function
             csrr    a1,  mcause
             srli    a0,  a1, 31
             slli    a1,  a1, 1

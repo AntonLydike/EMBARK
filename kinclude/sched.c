@@ -16,9 +16,22 @@ void scheduler_run_next ()
     scheduler_switch_to(current_process_index);
 }
 
+void scheduler_try_return_to(ProcessControlBlock* pcb)
+{
+    if (pcb->status != PROC_RDY) {
+        scheduler_run_next();
+    } else {
+        current_process_index = scheduler_index_from_pid(pcb->pid);
+        //FIXME: this refreshes the processes time slice which we actually don't want!
+        unsigned long long int mtimecmp = read_time() + TIME_SLICE_LEN;
+        write_mtimecmp(mtimecmp);
+        scheduler_switch_to(current_process_index);
+    }
+}
+
 int  scheduler_select_free() 
 {
-    long long int mtime;
+    unsigned long long int mtime;
     int i;
     int timeout_available = false; // note if a timeout is available
 
