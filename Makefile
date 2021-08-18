@@ -11,7 +11,7 @@ GCC_PREF=riscv32-unknown-elf-
 
 CC=$(GCC_PREF)gcc
 OBJDUMP=$(GCC_PREF)objdump
-CFLAGS=-I$(KLIBDIR) -O3 -MD -mcmodel=medany
+CFLAGS=-I$(KLIBDIR) -O3 -MD -mcmodel=medany -Wall -Wextra -pedantic-errors
 KERNEL_CFLAGS=-nostdlib -T linker.ld
 ARCH = rv32im							# here you 
 
