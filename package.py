@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from enum import Enum
 from dataclasses import dataclass
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Section, SymbolTableSection
@@ -8,7 +7,7 @@ from typing import List, Tuple, Dict, Generator, Union
 import os, sys
 
 # A set of sections that we want to include in the image
-INCLUDE_THESE_SECTIONS = set(('.text', '.stack', '.bss', '.sdata', '.sbss', '.data'))
+INCLUDE_THESE_SECTIONS = set(('.text', '.stack', '.bss', '.sdata', '.sbss', '.data', '.stack'))
 
 
 # sector size of the img file in bytes
@@ -94,7 +93,7 @@ class MemImageCreator:
             raise Exception("seeking already passed position!")
         if len(self.data) == pos:
             return
-        print(f"  - zeros          {len(self.data):x}:{pos:x}")
+        print(f"  - zeros {pos-len(self.data):8x} {len(self.data):x}:{pos:x}")
         self.put(bytes(pos - len(self.data)))
         assert len(self.data) == pos
     
@@ -190,4 +189,4 @@ if __name__ == '__main__':
     if '--help' in sys.argv or len(sys.argv) == 1:
         print_help()
     else:
-        package(sys.argv[1], sys.argv[2:], 'memory.img')
+        package(sys.argv[1], sys.argv[2:-1], sys.argv[-1])
