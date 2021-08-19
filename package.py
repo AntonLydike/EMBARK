@@ -5,10 +5,21 @@ from elftools.elf.sections import Section, SymbolTableSection
 from typing import List, Tuple, Dict, Generator, Union
 
 import os, sys
+import json
+
+## Configuration: 
 
 # A set of sections that we want to include in the image
-INCLUDE_THESE_SECTIONS = set(('.text', '.stack', '.bss', '.sdata', '.sbss', '.data', '.stack'))
-
+INCLUDE_THESE_SECTIONS = set((
+    '.text', '.stack', '.bss', '.sdata', 
+    '.sbss', '.data', '.stack', '.init', 
+    '.fini', '.preinit_array', '.init_array', 
+    '.fini_array', '.rodata'
+))
+# these sections are empty, so we don't want to read the elf here
+EMPTY_SECTIONS = set((
+    '.bss', '.sbss', '.stack'
+))
 
 # sector size of the img file in bytes
 SECTOR_SIZE = 512
@@ -18,7 +29,8 @@ MEM_START = 0x100
 
 # process control block struct name
 KERNEL_BINARY_TABLE = 'binary_table'
-KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4 # loaded_binary struct size (4 integers)
+# loaded_binary struct size (4 integers)
+KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4 
 
 def overlaps(p1, l1, p2, l2) -> bool:
     return (p1 <= p2 and p1 + l1 > p2) or (p2 <= p1 and p2 + l2 > p1)
@@ -32,7 +44,7 @@ class Section:
     def __init__(self, sec):
         self.name = sec.name
         self.start = sec.header.sh_addr
-        if sec.name in ('.text', '.data', '.sdata'):
+        if sec.name not in EMPTY_SECTIONS:
             self.data = sec.data()
         else:
             self.data = bytes(sec.header.sh_size)
@@ -52,7 +64,7 @@ class Bin:
     entry: int
     start: int
 
-    def __init__(self, name) -> Generator[Section, None, None]:
+    def __init__(self, name):
         self.name = name
         self.secs = list()
         with open(self.name, 'rb') as f:
@@ -81,12 +93,20 @@ class Bin:
         return sum(sec.size for sec in self)
 
 class MemImageCreator:
+    """
+    Interface for writing the img file
+    """
     data: bytes
     patches: List[Tuple[int, bytes]]
+    dbg_nfo: Dict
 
     def __init__(self):
         self.data = b''
         self.patches = list()
+        self.dbg_nfo = {
+            'sections': dict(),
+            'symbols': dict()
+        }
 
     def seek(self, pos):
         if len(self.data) > pos:
@@ -94,27 +114,33 @@ class MemImageCreator:
         if len(self.data) == pos:
             return
         print(f"  - zeros {pos-len(self.data):8x} {len(self.data):x}:{pos:x}")
-        self.put(bytes(pos - len(self.data)))
+        self.put(bytes(pos - len(self.data)), '', '.empty')
         assert len(self.data) == pos
     
     def align(self, bound):
         if len(self.data) % bound != 0:
-            self.put(bytes(bound - (len(self.data) % bound)))
+            self.put(bytes(bound - (len(self.data) % bound)), '', '.empty')
         assert len(self.data) % bound == 0
         
-    def put(self, stuff: bytes) -> int:
+    def put(self, stuff: bytes, parent: str, name: str) -> int:
         pos = len(self.data)
         self.data += stuff
+        self.dbg_nfo['sections'][pos] = parent + ':' + name
         return pos
 
     def putBin(self, bin: Bin) -> int:
-        pos = len(self.data)
+        bin_start = len(self.data)
         for sec in bin:
-            img_pos = pos + sec.start - bin.start
+            img_pos = bin_start + sec.start - bin.start
             self.seek(img_pos)
             print(f"  - section {sec.name:<6} {img_pos:x}:{img_pos + sec.size:x}")
-            self.put(sec.data)
-        return pos
+            self.put(sec.data, bin.name, sec.name)
+        self.dbg_nfo['symbols'][bin.name] = {
+            name: bin_start + val - bin.start
+            for name, val in bin.symtab.items()
+            if val != 0
+        }
+        return bin_start
 
     def patch(self, pos, bytes):
         for ppos, pbytes in self.patches:
@@ -146,10 +172,14 @@ class MemImageCreator:
                 print(f" - zeros {len(self.data):x}:{(SECTOR_SIZE - (len(self.data) % SECTOR_SIZE))+len(self.data):x}")
                 f.write(bytes(SECTOR_SIZE - (len(self.data) % SECTOR_SIZE)))
         # done!
+        print(f"writing debug info to {fname}.dbg")
+        with open(fname + '.dbg', 'w') as f:
+            json.dump(self.dbg_nfo, f, indent = 2)
+
 
 def package(kernel: str, binaries: List[str], out: str):
     """
-    create an image
+    Main logic for creating the image file
     """
     img = MemImageCreator()
     
@@ -179,14 +209,15 @@ def package(kernel: str, binaries: List[str], out: str):
 
 
 def pcb_patch(binid: int, entrypoint: int, start: int, end: int):
+    """
+    Creates the binary data to populate the KERNEL_BINARY_TABLE structs
+    """
     return b''.join(num.to_bytes(4, 'little') for num in (binid, entrypoint, start, end))
-
-
-    
 
 
 if __name__ == '__main__':
     if '--help' in sys.argv or len(sys.argv) == 1:
         print_help()
     else:
+        print(f"creating image {sys.argv[-1]}")
         package(sys.argv[1], sys.argv[2:-1], sys.argv[-1])
