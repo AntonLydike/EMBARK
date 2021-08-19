@@ -48,6 +48,10 @@ int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 }
 
 void trap_handle_ecall() {
+    {
+        
+        mark_ecall_entry();
+    };
     ProcessControlBlock* pcb = get_current_process();
     int *regs = pcb->regs;
     int code = regs[16];
@@ -73,19 +77,39 @@ void trap_handle(int interrupt_bit, int code, int mtval)
 {
     if (interrupt_bit) {
         switch (code) {
+            // timer interrupts
+            case 4:
+            case 5:
+            case 6:
             case 7:
               scheduler_run_next();
               break;
             default:
               // impossible
-              HALT(12)
+              HALT(12);
               break;
         }
     } else {
         switch (code) {
-            case 8:    // user ecall
+            // any known exception code:
+            case 0:
+            case 1:
+            case 2:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 12:
+            case 13:
+            case 15:
+                handle_exception(code, mtval);
+                break;
+            // user or supervisor ecall
+            case 8:    
+            case 9:
                 trap_handle_ecall();
                 break;
+            // unknown code
             default:
                 HALT(13);
         }
@@ -101,4 +125,9 @@ void init_ecall_table()
     ecall_table[ECALL_JOIN]  = ecall_handle_join;
     ecall_table[ECALL_KILL]  = ecall_handle_kill;
     ecall_table[ECALL_EXIT]  = ecall_handle_exit;
+}
+
+void handle_exception(int ecode, int mtval) 
+{
+
 }

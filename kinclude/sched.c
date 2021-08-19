@@ -6,13 +6,14 @@
 // scheduling data:
 ProcessControlBlock processes[PROCESS_COUNT];
 int current_process_index = 1;
+unsigned long long int scheduling_interrupted_start;
+unsigned long long int next_interrupt_scheduled_for;
 
 void scheduler_run_next ()  
 {
     current_process_index = scheduler_select_free();
     // set up timer interrupt
-    unsigned long long int mtimecmp = read_time() + TIME_SLICE_LEN;
-    write_mtimecmp(mtimecmp);
+    set_next_interrupt();
     scheduler_switch_to(current_process_index);
 }
 
@@ -22,9 +23,9 @@ void scheduler_try_return_to(ProcessControlBlock* pcb)
         scheduler_run_next();
     } else {
         current_process_index = scheduler_index_from_pid(pcb->pid);
-        //FIXME: this refreshes the processes time slice which we actually don't want!
-        unsigned long long int mtimecmp = read_time() + TIME_SLICE_LEN;
-        write_mtimecmp(mtimecmp);
+        // add time spent in ecall handler to the processes time slice
+        next_interrupt_scheduled_for = next_interrupt_scheduled_for + (read_time() - scheduling_interrupted_start);
+        write_mtimecmp(next_interrupt_scheduled_for);
         scheduler_switch_to(current_process_index);
     }
 }
@@ -134,4 +135,15 @@ int* get_current_process_registers()
 ProcessControlBlock* get_current_process() 
 {
     return &processes[current_process_index];
+}
+
+void set_next_interrupt()
+{
+    next_interrupt_scheduled_for = read_time() + TIME_SLICE_LEN;
+    write_mtimecmp(next_interrupt_scheduled_for);
+}
+
+void mark_ecall_entry()
+{
+    scheduling_interrupted_start = read_time();
 }

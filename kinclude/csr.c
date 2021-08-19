@@ -31,15 +31,3 @@ void write_mtimecmp(unsigned long long int mtimecmp) {
 }
 
 #endif
-
-
-unsigned long long int read_time() {
-    unsigned int lower, higher;
-    __asm__(
-        "csrr %0, %2\n"
-        "csrr %1, %3\n"
-        : "=r"(lower), "=r"(higher)
-        : "i"(CSR_TIME), "i"(CSR_TIMEH)
-    );
-    return (unsigned long long) higher << 32 | lower;
-}

@@ -33,6 +33,7 @@ int ecall_handle_join(int*, ProcessControlBlock*);
 int ecall_handle_kill(int*, ProcessControlBlock*);
 int ecall_handle_exit(int*, ProcessControlBlock*);
 
+void handle_exception(int ecode, int mtval);
 
 void __attribute__((__noreturn__)) trap_handle(int interrupt_bit, int code, int mtval);
 
