@@ -169,6 +169,7 @@ class MemImageCreator:
                 print(f" - data  {pos:x}:{len(self.data):x}")
                 f.write(self.data[pos : len(self.data)])
             if len(self.data) % SECTOR_SIZE != 0:
+                self.dbg_nfo['sections'][len(self.data)] = ':.empty'
                 print(f" - zeros {len(self.data):x}:{(SECTOR_SIZE - (len(self.data) % SECTOR_SIZE))+len(self.data):x}")
                 f.write(bytes(SECTOR_SIZE - (len(self.data) % SECTOR_SIZE)))
         # done!
@@ -186,6 +187,7 @@ def package(kernel: str, binaries: List[str], out: str):
     # process kernel
     img.seek(MEM_START)
     kernel = Bin(kernel)
+    kernel.name = 'kernel' # make sure kernel is marked kernel in debug symbols
     bin_table_addr = kernel.symtab.get(KERNEL_BINARY_TABLE, 0) - kernel.start + MEM_START
     print(f"kernel binary loaded, binary table located at: {bin_table_addr:x} (symtab addr {kernel.symtab.get(KERNEL_BINARY_TABLE, '??'):x})")
 
