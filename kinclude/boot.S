@@ -54,7 +54,7 @@ trap_vector:
             // save all registers into the PCB struct
             // switch contents of t6 with contents of mscratch
             // mscratch holds the PCBs regs field address
-            csrrw   t6,  mscratch, t6
+            csrrw   t6,  CSR_MSCRATCH, t6
             sw      ra,  0(t6)
             sw      sp,  4(t6)
             sw      gp,  8(t6)
@@ -86,17 +86,17 @@ trap_vector:
             sw      t4,  112(t6)
             sw      t5,  116(t6)
             mv      a0,  t6             // save struct address to already saved register
-            csrrw   t6,  mscratch, t6   // load original t6 register from mscratch
+            csrrw   t6,  CSR_MSCRATCH, t6   // load original t6 register from mscratch
             sw      t6,  120(a0)        // save original t6 register
             // save mepc to pc field in pcb
-            csrr    t6,  mepc
+            csrr    t6,  CSR_MEPC
             sw      t6,  -4(a0)
             // load mcause and mtval values in the correct registers for call to trap_handle function
-            csrr    a1,  mcause
+            csrr    a1,  CSR_MCAUSE
             srli    a0,  a1, 31
             slli    a1,  a1, 1
             srli    a1,  a1, 1
-            csrr    a2,  mtval
+            csrr    a2,  CSR_MTVAL
             // reinit sp and gp
 .option push
 .option norelax
