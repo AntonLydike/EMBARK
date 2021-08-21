@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include "ktypes.h"
 #include "ecall.h"
 #include "sched.h"
 #include "io.h"
@@ -49,16 +50,21 @@ void create_processes_from_bin_table()
         if (binary_table[i].binid == 0)
             break;
 
+
+        optional_voidptr stack_top = malloc_stack(1<<12); // allocate 4Kib stack
+        if (has_error(stack_top)) {
+            dbgln("Error while allocating stack for initial process", 48);
+            continue;
+        }
+
         next_process->status = PROC_RDY;
         next_process->pid = binary_table[i].binid;
         next_process->pc = binary_table[i].entrypoint;
-        void* stack_top = malloc_stack(1<<12); // allocate 4Kib stack
-        int stack_e = ((int) stack_top) - 32;
-        next_process->regs[1] = stack_e; // set stack top, put 32 bytes of zeros there
+
+        next_process->regs[1] = (int) stack_top.value; // set stack top, put 32 bytes of zeros there
         next_process++;
         dbgln("enabled process from table", 26);
 
-        memset(0, (void*) stack_e, stack_top); // write zeros to stack
     }
 }
 
