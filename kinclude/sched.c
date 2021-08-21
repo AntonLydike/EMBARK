@@ -1,20 +1,25 @@
 #include "../kernel.h"
 #include "sched.h"
 #include "csr.h"
+#include "io.h"
 
 
 // scheduling data:
 ProcessControlBlock processes[PROCESS_COUNT];
-int current_process_index = 1;
+ProcessControlBlock* current_process;
 unsigned long long int scheduling_interrupted_start;
 unsigned long long int next_interrupt_scheduled_for;
 
-void scheduler_run_next ()  
+void scheduler_run_next ()
 {
-    current_process_index = scheduler_select_free();
+    current_process = scheduler_select_free();
+    char msg[30] = "scheduling ";
+    char* end = itoa(current_process->pid, &msg[11], 10);
+    dbgln(msg, ((int) end) - ((int) msg));
+
     // set up timer interrupt
     set_next_interrupt();
-    scheduler_switch_to(current_process_index);
+    scheduler_switch_to(current_process);
 }
 
 void scheduler_try_return_to(ProcessControlBlock* pcb)
@@ -22,15 +27,15 @@ void scheduler_try_return_to(ProcessControlBlock* pcb)
     if (pcb->status != PROC_RDY) {
         scheduler_run_next();
     } else {
-        current_process_index = scheduler_index_from_pid(pcb->pid);
+        current_process = pcb;
         // add time spent in ecall handler to the processes time slice
         next_interrupt_scheduled_for = next_interrupt_scheduled_for + (read_time() - scheduling_interrupted_start);
         write_mtimecmp(next_interrupt_scheduled_for);
-        scheduler_switch_to(current_process_index);
+        scheduler_switch_to(current_process);
     }
 }
 
-int  scheduler_select_free() 
+ProcessControlBlock* scheduler_select_free()
 {
     unsigned long long int mtime;
     int i;
@@ -39,15 +44,15 @@ int  scheduler_select_free()
     while (true) {
         mtime = read_time();
 
-        for (i=1; i < PROCESS_COUNT; i++) {
-            ProcessControlBlock *pcb = processes + ((current_process_index + i) % PROCESS_COUNT);
-
-            if (pcb->status == PROC_RDY) 
-                return (current_process_index + i) % PROCESS_COUNT;
+        for (i=0; i < PROCESS_COUNT; i++) {
+            ProcessControlBlock* pcb = processes + i;
+            if (pcb->status == PROC_RDY && pcb != current_process)
+                return pcb;
             
             if (pcb->status == PROC_WAIT_SLEEP) {
                 if (pcb->asleep_until < mtime) {
-                    return (current_process_index + i) % PROCESS_COUNT;
+                    //TODO: set wakeup args!
+                    return pcb;
                 }
                 timeout_available = true;
             }
@@ -55,26 +60,28 @@ int  scheduler_select_free()
             if (pcb->status == PROC_WAIT_PROC) {
                 if (pcb->asleep_until != 0) {
                     if (pcb->asleep_until < mtime) {
-                        // set process return args!
-                        return (current_process_index + i) % PROCESS_COUNT;
+                        //TODO: set process return args!
+                        return pcb;
                     }
                     timeout_available = true;
                 }
             }
         }
+        if (current_process->status == PROC_RDY) {
+            return current_process;
+        }
 
         if (timeout_available == false) {
             // either process deadlock or no processes alive. 
             //TODO: handle missing executable thread
+            dbgln("No thread active!", 17);
             HALT(22);
         }
     }
 }
 
-void scheduler_switch_to(int proc_index) 
+void scheduler_switch_to(ProcessControlBlock* pcb)
 {
-    ProcessControlBlock *pcb = processes + proc_index;
-
     CSR_WRITE(CSR_MEPC, pcb->pc);
 
     // set up registers
@@ -118,7 +125,7 @@ void scheduler_switch_to(int proc_index)
     __builtin_unreachable();
 }
 
-int  scheduler_index_from_pid(int pid) 
+int  scheduler_index_from_pid(int pid)
 {
     for (int i = 0; i < PROCESS_COUNT; i++) {
         if (processes[i].pid == pid)
@@ -127,14 +134,14 @@ int  scheduler_index_from_pid(int pid)
     return -1;
 }
 
-int* get_current_process_registers() 
+int* get_current_process_registers()
 {
-    return processes[current_process_index].regs;
+    return current_process->regs;
 }
 
-ProcessControlBlock* get_current_process() 
+ProcessControlBlock* get_current_process()
 {
-    return &processes[current_process_index];
+    return current_process;
 }
 
 void set_next_interrupt()
