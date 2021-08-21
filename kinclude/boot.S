@@ -106,18 +106,21 @@ trap_vector:
             jal     trap_handle
 
 
+// make memset global
+.global     memset
+.type       memset, @function
 #ifdef __risc_no_ext
 // "dumb" memset, if RV32M is not present on the target
 // since memset is currently only used at startup, the performance implications
 // should be minimal.
 memset:
-    bge     a1, a2, 2f
+            bge     a1, a2, 2f
 1:
-    sw      a0, 0(a1)
-    addi    a1, a1, 4
-    blt     a1, a2, 1b
+            sw      a0, 0(a1)
+            addi    a1, a1, 4
+            blt     a1, a2, 1b
 2:
-    ret
+            ret
 
 #else
 

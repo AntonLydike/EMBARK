@@ -11,11 +11,14 @@ GCC_PREF=riscv32-unknown-elf-
 
 CC=$(GCC_PREF)gcc
 OBJDUMP=$(GCC_PREF)objdump
-CFLAGS=-I$(KLIBDIR) -O3 -MD -mcmodel=medany -Wall -Wextra -pedantic-errors
+CFLAGS=-I$(KLIBDIR) -MD -mcmodel=medany -Wall -Wextra -pedantic-errors
 KERNEL_CFLAGS=-nostdlib -T linker.ld
 ARCH = rv32im							# here you 
 
 ### Build configuration:
+
+# comment out if you don't have any text IO device memory mapped
+CFLAGS += -DTEXT_IO_ADDR=0xff0000 -DTEXT_IO_BUFLEN=64
 
 # uncomment these to build with only the rv32i standard
 #CFLAGS += -D__risc_no_ext=1
@@ -30,10 +33,10 @@ ARCH = rv32im							# here you
 CFLAGS += -march=$(ARCH)
 
 # dependencies that need to be built:
-_DEPS = ecall.c csr.c sched.c
+_DEPS = ecall.c csr.c sched.c io.o
 
 # dependencies as object files:
-_OBJ = ecall.o sched.o boot.o csr.o
+_OBJ = ecall.o sched.o boot.o csr.o io.o
 
 
 DEPS  = $(patsubst %,$(KLIBDIR)/%,$(_DEPS))

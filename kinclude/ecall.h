@@ -17,7 +17,7 @@ enum ecall_codes {
 
 #define ECALL_TABLE_LEN 16
 
-enum ecall_errors {
+enum error_code {
     ENOCODE = -1,   // invalid syscall code
     EINVAL  = -2,   // invalid argument value
     ENOMEM  = -3,   // not enough memory

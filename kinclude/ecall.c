@@ -1,6 +1,7 @@
 #include "ecall.h"
 #include "sched.h"
 #include "csr.h"
+#include "io.h"
 
 typedef int (*ecall_handler)(int*,ProcessControlBlock*);
 
@@ -44,6 +45,13 @@ int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
     pcb->status = PROC_DEAD;
     pcb->exit_code = *args;
 
+    char msg[34] = "process    exited with code   ";
+
+    itoa(pcb->pid, &msg[8], 10);
+    itoa(*args % 10, &msg[28], 10);
+
+    dbgln(msg, 34);
+
     return 0;
 }
 
@@ -54,7 +62,7 @@ void trap_handle_ecall() {
     };
     ProcessControlBlock* pcb = get_current_process();
     int *regs = pcb->regs;
-    int code = regs[16];
+    int code = regs[16];    // code is inside a7
 
     // check if the code is too large/small or if the handler is zero
     if (code < 0 || code > ECALL_TABLE_LEN || ecall_table[code] == 0) {
@@ -129,5 +137,6 @@ void init_ecall_table()
 
 void handle_exception(int ecode, int mtval) 
 {
-
+    dbgln("Trap encountered!", 17);
+    __asm__("ebreak");
 }

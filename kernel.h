@@ -20,7 +20,7 @@
 typedef struct loaded_binary {
     int binid;
     int entrypoint;
-    int bounds[2];
+    void* bounds[2];
 } loaded_binary;
 
 // create a global table holding all loaded binaries.
