@@ -32,6 +32,9 @@ KERNEL_BINARY_TABLE = 'binary_table'
 # loaded_binary struct size (4 integers)
 KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4 
 
+
+## end of config
+
 def overlaps(p1, l1, p2, l2) -> bool:
     return (p1 <= p2 and p1 + l1 > p2) or (p2 <= p1 and p2 + l2 > p1)
 
