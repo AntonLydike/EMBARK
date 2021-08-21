@@ -1,11 +1,18 @@
+#include "ktypes.h"
 #include "ecall.h"
 #include "sched.h"
 #include "csr.h"
 #include "io.h"
 
+// this type is only used here, therefore we don't need it in the ktypes header
 typedef int (*ecall_handler)(int*,ProcessControlBlock*);
 
 ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
+
+
+// ignore unused parameter errors only for these functions
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
 {
@@ -54,6 +61,8 @@ int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 
     return 0;
 }
+
+#pragma GCC diagnostic pop
 
 void trap_handle_ecall() {
     {

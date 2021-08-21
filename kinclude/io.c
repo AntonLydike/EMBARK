@@ -29,13 +29,6 @@ void dbgln(char* text, int len)
     *((char*) TEXT_IO_ADDR) = 1;
 }
 
-#else
-
-/* if no textIO module loaded, dbgln is a noop :( */
-void dbgln(char*, int){}
-
-#endif
-
 
 /* alphabet for itoa */
 char alpha[16] = "0123456789abcdef";
@@ -61,3 +54,14 @@ char* itoa (int value, char* str, int base)
 
     return str;
 }
+
+#else
+
+/* if no textIO module loaded, dbgln is a noop :( */
+void dbgln(char* text, int len){}
+char* itoa (int value, char* str, int base) {
+    return str;
+}
+
+#endif
+

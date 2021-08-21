@@ -2,26 +2,7 @@
 #define H_SCHED
 
 #include "../kernel.h"
-
-enum process_status {
-    PROC_DEAD       = 0,
-    PROC_RDY        = 1,
-    PROC_WAIT_PROC  = 2,
-    PROC_WAIT_SLEEP = 3,
-};
-
-// process structure:
-typedef struct ProcessControlBlock ProcessControlBlock;
-struct ProcessControlBlock {
-    int pid;
-    int pc;
-    int regs[31];
-    int exit_code;
-    // scheduling information
-    enum process_status status;
-    ProcessControlBlock *waiting_for_process;
-    unsigned long long int asleep_until;
-};
+#include "ktypes.h"
 
 // scheduling data:
 extern ProcessControlBlock processes[PROCESS_COUNT];
