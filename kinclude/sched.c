@@ -2,6 +2,7 @@
 #include "sched.h"
 #include "csr.h"
 #include "io.h"
+#include "malloc.h"
 
 
 // scheduling data:
@@ -9,6 +10,7 @@ ProcessControlBlock processes[PROCESS_COUNT];
 ProcessControlBlock* current_process;
 unsigned long long int scheduling_interrupted_start;
 unsigned long long int next_interrupt_scheduled_for;
+int next_process_id = 1;
 
 void scheduler_run_next ()
 {
@@ -153,4 +155,55 @@ void set_next_interrupt()
 void mark_ecall_entry()
 {
     scheduling_interrupted_start = read_time();
+}
+
+optional_pcbptr find_available_pcb_slot() {
+    static int index = 0;
+    int start_index = index;
+    ProcessControlBlock* pcb = processes + index;
+
+    while (pcb->status != PROC_DEAD) {        
+        index = (index + 1) % PROCESS_COUNT;
+        if (index == start_index)
+            return (optional_pcbptr) { .error = ENOBUFS };
+        pcb = processes + index;
+    }
+    return (optional_pcbptr) { .value = pcb };
+}
+
+int create_new_process(loaded_binary* bin, int stack_size)
+{
+    // try to get a position in the processes list
+    optional_pcbptr slot_or_err = find_available_pcb_slot();
+    // if that failed, we cannot creat a new process
+    if (has_error(slot_or_err)) {
+        dbgln("No more process structs!", 24);
+        return slot_or_err.error;
+    }
+
+    // allocate stack for the new process
+    optional_voidptr stack_top_or_err = malloc_stack(stack_size); // allocate 4Kib stack
+    // if that failed, we also can't create a new process
+    if (has_error(stack_top_or_err)) {
+        dbgln("Error while allocating stack for process", 40);
+        return stack_top_or_err.error;
+    }
+
+    ProcessControlBlock* pcb = slot_or_err.value;
+
+    // determine next pid
+    int pid = next_process_id++;
+
+    // mark process as ready
+    pcb->status = PROC_RDY;
+    pcb->pid = pid;
+    pcb->pc = bin->entrypoint;
+    pcb->binary = bin;
+    // load stack top into stack pointer register
+    pcb->regs[1] = (int) stack_top_or_err.value;
+    // load pid into a0 register
+    pcb->regs[9] = pid;
+
+    dbgln("Created new process!", 20);
+
 }

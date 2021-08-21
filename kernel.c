@@ -5,10 +5,12 @@
 #include "io.h"
 #include "malloc.h"
 
-void create_processes_from_bin_table();
+void read_binary_table();
 
 extern ProcessControlBlock processes[PROCESS_COUNT];
 
+// this array is populated when the memory image is built, therefore it should
+// resign in a section which is not overwritten with zeros on startup
 loaded_binary binary_table[NUM_BINARIES] __attribute__ ((section (".data")));
 
 extern void memset(unsigned int, void*, void*);
@@ -19,20 +21,20 @@ extern void init()
 
     dbgln("Kernel started!", 15);
 
-    create_processes_from_bin_table();
+    read_binary_table();
 
     scheduler_run_next();   
 }
 
-void create_processes_from_bin_table()
+void read_binary_table()
 {
     char msg[28] = "found bin with id 0 at pos 0";
-    ProcessControlBlock* next_process = processes;
 
     malloc_info info;
     info.allocate_memory_end = (void*) 0xFF0000;
     info.allocate_memory_start = (void*) 0;
 
+    // calculate the end of loaded binaries
     for (int i = 0; i < NUM_BINARIES; i++) {
         if (binary_table[i].binid == 0)
             break;
@@ -50,21 +52,9 @@ void create_processes_from_bin_table()
         if (binary_table[i].binid == 0)
             break;
 
-
-        optional_voidptr stack_top = malloc_stack(1<<12); // allocate 4Kib stack
-        if (has_error(stack_top)) {
-            dbgln("Error while allocating stack for initial process", 48);
-            continue;
-        }
-
-        next_process->status = PROC_RDY;
-        next_process->pid = binary_table[i].binid;
-        next_process->pc = binary_table[i].entrypoint;
-
-        next_process->regs[1] = (int) stack_top.value; // set stack top, put 32 bytes of zeros there
-        next_process++;
-        dbgln("enabled process from table", 26);
-
+        // create a new process for each binary found
+        // it should have around 4kb stack
+        create_new_process(binary_table+i, 1<<12);
     }
 }
 

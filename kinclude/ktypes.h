@@ -25,6 +25,8 @@ enum process_status {
 
 // process structure:
 typedef struct ProcessControlBlock ProcessControlBlock;
+struct loaded_binary;
+
 struct ProcessControlBlock {
     int pid;
     int pc;
@@ -32,9 +34,23 @@ struct ProcessControlBlock {
     int exit_code;
     // scheduling information
     enum process_status status;
-    ProcessControlBlock *waiting_for_process;
+    ProcessControlBlock* waiting_for_process;
+    struct loaded_binary* binary;
     unsigned long long int asleep_until;
 };
+
+
+/* This struct holds information about binaries which are currently loaded into
+ * memory. Currently the kernel is not able to load binaries into memory, as
+ * no file system layer is implemented. When the memory image is built, the 
+ * list of loaded binaries is populated aswell.
+ */
+typedef struct loaded_binary {
+    int binid;
+    int entrypoint;
+    void* bounds[2];
+} loaded_binary;
+
 
 /*
  *  Optionals

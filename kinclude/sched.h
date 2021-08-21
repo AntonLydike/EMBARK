@@ -18,4 +18,7 @@ int  scheduler_index_from_pid(int pid);
 int* get_current_process_registers();
 ProcessControlBlock* get_current_process();
 void mark_ecall_entry();
+
+int create_new_process(loaded_binary* bin, int stack_size);
+
 #endif
