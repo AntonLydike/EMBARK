@@ -54,7 +54,10 @@ void read_binary_table()
 
         // create a new process for each binary found
         // it should have around 4kb stack
-        create_new_process(binary_table+i, 1<<12);
+        optional_pcbptr res = create_new_process(binary_table+i, 1<<12);
+        if (has_error(res)) {
+            dbgln("Error creating initial process!", 31);
+        }
     }
 }
 

@@ -15,7 +15,7 @@ enum ecall_codes {
     ECALL_EXIT  = 5,
 };
 
-#define ECALL_TABLE_LEN 16
+#define ECALL_TABLE_LEN 8
 
 // initializer for ecall lookup table
 void init_ecall_table();

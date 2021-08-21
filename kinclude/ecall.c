@@ -16,11 +16,16 @@ ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 
 int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
 {
-    void* entry = (void*) args_ptr[0];
-    void* args  = (void*) args_ptr[1];
+    void* entry = (void*) args_ptr[0];  // a0
+    void* args  = (void*) args_ptr[1];  // a1
+    //int   flags = args_ptr[2];          // a2
 
+    optional_pcbptr pcb_or_err = create_new_thread(pcb, entry, args, 1<<14);
+
+    if (has_error(pcb_or_err))
+        return pcb_or_err.error;
+    
     return EINVAL;
-// void* entry, void* args
 }
 
 int ecall_handle_sleep(int* args, ProcessControlBlock* pcb)
@@ -38,19 +43,40 @@ int ecall_handle_sleep(int* args, ProcessControlBlock* pcb)
 
 int ecall_handle_join(int* args, ProcessControlBlock* pcb)
 {
-    return EINVAL;
+    int pid = args[0];  // a0
+
+    ProcessControlBlock* target = process_from_pid(pid);
+
+    if (target == NULL)
+        return ESRCH;
+    
+    if (target->status == PROC_DEAD)
+        return target->exit_code;
+    
+    pcb->status = PROC_WAIT_PROC;
+    pcb->waiting_for_process = target;
+
+    int timeout = args[1];
+    if (timeout <= 0)
+        return 0;
+
+    unsigned int len = (unsigned int) timeout;
+    pcb->asleep_until = read_time() + len;
+    
+    return 0;
 }
 
 int ecall_handle_kill(int* args, ProcessControlBlock* pcb)
 {
     return EINVAL;
-
 }
 
 int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 {
     pcb->status = PROC_DEAD;
     pcb->exit_code = *args;
+
+    dbgln("exit", 4);
 
     char msg[34] = "process    exited with code   ";
 
@@ -59,28 +85,36 @@ int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 
     dbgln(msg, 34);
 
+    // recursively kill all child processes
+    kill_child_processes(pcb);
+
     return 0;
 }
 
 #pragma GCC diagnostic pop
 
-void trap_handle_ecall() {
-    {
-        
-        mark_ecall_entry();
-    };
+static void print_num(int num) {
+    char buff[16];
+    char* end = itoa(num, buff, 10);
+    dbgln(buff, (int)(end - buff));
+}
+
+void trap_handle_ecall() { 
+    mark_ecall_entry();
     ProcessControlBlock* pcb = get_current_process();
     int *regs = pcb->regs;
-    int code = regs[16];    // code is inside a7
+    int code = regs[REG_A0 + 7];    // code is inside a7
+
+    dbgln("ecall:", 6);
+    print_num(code);
 
     // check if the code is too large/small or if the handler is zero
     if (code < 0 || code > ECALL_TABLE_LEN || ecall_table[code] == 0) {
-        regs[9] = ENOCODE;
-        __asm__("ebreak");
+        regs[REG_A0] = ENOCODE;
     } else {
         // get the corresponding ecall handler
         ecall_handler handler = ecall_table[code];
-        regs[9] = handler(&regs[9], pcb);
+        regs[REG_A0] = handler(&regs[REG_A0], pcb);
     }
 
     // increment pc of this process
@@ -99,8 +133,8 @@ void trap_handle(int interrupt_bit, int code, int mtval)
             case 5:
             case 6:
             case 7:
-              scheduler_run_next();
-              break;
+                scheduler_run_next();
+                break;
             default:
               // impossible
               HALT(12);
@@ -131,7 +165,7 @@ void trap_handle(int interrupt_bit, int code, int mtval)
                 HALT(13);
         }
     }
-    HALT(1);
+    HALT(14);
     __builtin_unreachable();
 }
 
@@ -146,6 +180,6 @@ void init_ecall_table()
 
 void handle_exception(int ecode, int mtval) 
 {
-    dbgln("Trap encountered!", 17);
+    dbgln("exception encountered!", 17);
     __asm__("ebreak");
 }

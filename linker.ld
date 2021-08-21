@@ -237,4 +237,9 @@ SECTIONS
   /* End of uninitialized data segment (used by syscalls.c for heap) */
   PROVIDE( end = . );
   _end = ALIGN(8);
+
+  .thread_fini :
+  {
+    *(.thread_fini)
+  }
 }

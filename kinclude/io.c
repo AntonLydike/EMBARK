@@ -44,13 +44,24 @@ char* itoa (int value, char* str, int base)
         value *= -1;
     }
 
-    int num;
+    int digits = 0;
+    int num = 0;
+    // reverse number
+    do {
+        num = num * base;
+        num += value % base;
+        value = value / base;
+        digits++;
+    } while (value > 0);
+
+    value = num;
     do {
         num = value % base;
         value = value / base;
         *str++ = alpha[num];
+        digits--;
     }
-    while (value > 0);
+    while (digits > 0);
 
     return str;
 }

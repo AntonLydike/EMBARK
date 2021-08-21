@@ -1,15 +1,18 @@
 #ifndef H_ktypes
 #define H_ktypes
 
+#define NULL ((void*) 0)
+
 /*
  *  Error codes
  */
 
 enum error_code {
-    ENOCODE = 1,   // invalid syscall code
-    EINVAL  = 2,   // invalid argument value
-    ENOMEM  = 3,   // not enough memory
-    ENOBUFS = 4,   // no space left in buffer
+    ENOCODE = 1,    // invalid syscall code
+    EINVAL  = 2,    // invalid argument value
+    ENOMEM  = 3,    // not enough memory
+    ENOBUFS = 4,    // no space left in buffer
+    ESRCH   = 5,    // no such process
 };
 
 /*
@@ -37,6 +40,24 @@ struct ProcessControlBlock {
     ProcessControlBlock* waiting_for_process;
     struct loaded_binary* binary;
     unsigned long long int asleep_until;
+    // parent
+    ProcessControlBlock* parent;
+};
+
+enum pcb_struct_registers {
+    REG_RA = 0,
+    REG_SP = 1,
+    REG_GP = 2,
+    REG_TP = 3,
+    REG_T0 = 4,
+    REG_T1 = 5,
+    REG_t2 = 6,
+    REG_FP = 7,
+    REG_S0 = 7,
+    REG_S1 = 8,
+    REG_A0 = 9,
+    REG_S2 = 17,
+    REG_T3 = 27
 };
 
 

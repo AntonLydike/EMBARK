@@ -14,7 +14,7 @@ INCLUDE_THESE_SECTIONS = set((
     '.text', '.stack', '.bss', '.sdata', '.rdata', '.rodata'
     '.sbss', '.data', '.stack', '.init', 
     '.fini', '.preinit_array', '.init_array', 
-    '.fini_array', '.rodata'
+    '.fini_array', '.rodata', '.thread_fini'
 ))
 # these sections are empty, so we don't want to read the elf here
 EMPTY_SECTIONS = set((

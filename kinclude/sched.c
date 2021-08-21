@@ -4,10 +4,37 @@
 #include "io.h"
 #include "malloc.h"
 
+// use memset provided in boot.S
+extern void memset(int, void*, void*);
+// this is the address where threads return to
+extern int thread_finalizer;
+
+static void print_num(int num) {
+    char buff[16];
+    char* end = itoa(num, buff, 10);
+    dbgln(buff, (int)(end - buff));
+}
+
+static void print_processes() {
+    char line[12] = "============";
+    char alive[5] = "alive";
+    char dead[4] = "dead";
+    for (int i = 0; i < PROCESS_COUNT; i++) {
+        ProcessControlBlock* pcb = processes + i;
+        print_num(pcb->pid);
+        if (pcb->status == PROC_DEAD) {
+            dbgln(dead, 4);
+        } else {
+            dbgln(alive, 5);
+        }
+        print_num(i);
+        dbgln(line, 12);
+    }
+}
 
 // scheduling data:
 ProcessControlBlock processes[PROCESS_COUNT];
-ProcessControlBlock* current_process;
+ProcessControlBlock* current_process = NULL;
 unsigned long long int scheduling_interrupted_start;
 unsigned long long int next_interrupt_scheduled_for;
 int next_process_id = 1;
@@ -15,10 +42,6 @@ int next_process_id = 1;
 void scheduler_run_next ()
 {
     current_process = scheduler_select_free();
-    char msg[30] = "scheduling ";
-    char* end = itoa(current_process->pid, &msg[11], 10);
-    dbgln(msg, ((int) end) - ((int) msg));
-
     // set up timer interrupt
     set_next_interrupt();
     scheduler_switch_to(current_process);
@@ -29,6 +52,7 @@ void scheduler_try_return_to(ProcessControlBlock* pcb)
     if (pcb->status != PROC_RDY) {
         scheduler_run_next();
     } else {
+        dbgln("returning to process...", 23);
         current_process = pcb;
         // add time spent in ecall handler to the processes time slice
         next_interrupt_scheduled_for = next_interrupt_scheduled_for + (read_time() - scheduling_interrupted_start);
@@ -43,12 +67,18 @@ ProcessControlBlock* scheduler_select_free()
     int i;
     int timeout_available = false; // note if a timeout is available
 
+    if (current_process == NULL)
+        current_process = processes + PROCESS_COUNT - 1;
+
     while (true) {
         mtime = read_time();
+        int i = 1;
+        ProcessControlBlock* pcb = current_process + 1;
+        if (pcb > processes + PROCESS_COUNT)
+            pcb = processes;
 
-        for (i=0; i < PROCESS_COUNT; i++) {
-            ProcessControlBlock* pcb = processes + i;
-            if (pcb->status == PROC_RDY && pcb != current_process)
+        while (pcb != current_process) {
+            if (pcb->status == PROC_RDY)
                 return pcb;
             
             if (pcb->status == PROC_WAIT_SLEEP) {
@@ -68,7 +98,11 @@ ProcessControlBlock* scheduler_select_free()
                     timeout_available = true;
                 }
             }
+            pcb++;
+            if (pcb > processes + PROCESS_COUNT)
+                pcb = processes;
         }
+
         if (current_process->status == PROC_RDY) {
             return current_process;
         }
@@ -127,13 +161,13 @@ void scheduler_switch_to(ProcessControlBlock* pcb)
     __builtin_unreachable();
 }
 
-int  scheduler_index_from_pid(int pid)
+ProcessControlBlock* process_from_pid(int pid)
 {
     for (int i = 0; i < PROCESS_COUNT; i++) {
         if (processes[i].pid == pid)
-            return i;
+            return processes + i;
     }
-    return -1;
+    return NULL;
 }
 
 int* get_current_process_registers()
@@ -168,17 +202,19 @@ optional_pcbptr find_available_pcb_slot() {
             return (optional_pcbptr) { .error = ENOBUFS };
         pcb = processes + index;
     }
+    index++;
+
     return (optional_pcbptr) { .value = pcb };
 }
 
-int create_new_process(loaded_binary* bin, int stack_size)
+optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
 {
     // try to get a position in the processes list
     optional_pcbptr slot_or_err = find_available_pcb_slot();
     // if that failed, we cannot creat a new process
     if (has_error(slot_or_err)) {
         dbgln("No more process structs!", 24);
-        return slot_or_err.error;
+        return slot_or_err;
     }
 
     // allocate stack for the new process
@@ -186,7 +222,7 @@ int create_new_process(loaded_binary* bin, int stack_size)
     // if that failed, we also can't create a new process
     if (has_error(stack_top_or_err)) {
         dbgln("Error while allocating stack for process", 40);
-        return stack_top_or_err.error;
+        return (optional_pcbptr) { .error = stack_top_or_err.error };
     }
 
     ProcessControlBlock* pcb = slot_or_err.value;
@@ -199,11 +235,75 @@ int create_new_process(loaded_binary* bin, int stack_size)
     pcb->pid = pid;
     pcb->pc = bin->entrypoint;
     pcb->binary = bin;
+    pcb->parent = NULL;
+    pcb->asleep_until = 0;
+    // zero out registers
+    memset(0, pcb->regs, pcb->regs + 31);
     // load stack top into stack pointer register
-    pcb->regs[1] = (int) stack_top_or_err.value;
+    pcb->regs[REG_SP] = (int) stack_top_or_err.value;
     // load pid into a0 register
-    pcb->regs[9] = pid;
+    pcb->regs[REG_A0] = pid;
 
     dbgln("Created new process!", 20);
 
+    return (optional_pcbptr) { .value = pcb };
+}
+
+optional_pcbptr create_new_thread(ProcessControlBlock* parent, void* entrypoint, void* args, int stack_size)
+{
+    // try to get a position in the processes list
+    optional_pcbptr slot_or_err = find_available_pcb_slot();
+    // if that failed, we cannot creat a new process
+    if (has_error(slot_or_err)) {
+        dbgln("No more process structs!", 24);
+        return slot_or_err;
+    }
+
+    // allocate stack for the new process
+    optional_voidptr stack_top_or_err = malloc_stack(stack_size); // allocate 4Kib stack
+    // if that failed, we also can't create a new process
+    if (has_error(stack_top_or_err)) {
+        dbgln("Error while allocating stack for thread", 39);
+        return (optional_pcbptr) { .error = stack_top_or_err.error };
+    }
+
+    ProcessControlBlock* pcb = slot_or_err.value;
+
+    // determine next pid
+    int pid = next_process_id++;
+
+    // mark process as ready
+    pcb->status = PROC_RDY;
+    pcb->pid = pid;
+    pcb->pc = (int) entrypoint;
+    pcb->binary = parent->binary;
+    pcb->parent = parent;
+    pcb->asleep_until = 0;
+    // zero out registers
+    memset(0, pcb->regs, pcb->regs + 31);
+    // set return address to global thread finalizer
+    pcb->regs[REG_RA] = (int) &thread_finalizer;
+    // load stack top into stack pointer register
+    pcb->regs[REG_SP] = (int) stack_top_or_err.value;
+    // copy global pointer from parent
+    pcb->regs[REG_GP] = parent->regs[REG_GP];
+    // load args pointer into a0 register
+    pcb->regs[REG_A0] = (int) args;
+
+    dbgln("Created new thread!", 19);
+
+    return (optional_pcbptr) { .value = pcb };
+}
+
+void kill_child_processes(ProcessControlBlock* pcb)
+{
+    for (int i = 0; i < PROCESS_COUNT; i++) {
+        ProcessControlBlock* proc = processes + i;
+        if (proc->parent != pcb) 
+            continue;
+
+        proc->status = PROC_DEAD;
+        proc->exit_code = -9;   // set arbitrary exit code
+        kill_child_processes(proc);
+    }
 }

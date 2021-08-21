@@ -45,7 +45,8 @@ _start:
             jal     init
             
             // halt machine after returning from init
-            csrwi   CSR_HALT, 1
+            li      t0, -1
+            csrw    CSR_HALT, t0
 1:
             j       1b
 
@@ -163,3 +164,12 @@ memset:
             blt     a1, a2, 1b
             ret
 #endif
+
+// this is where instantiated threads return to once they are finished
+.section    .thread_fini
+.global     thread_finalizer
+thread_finalizer:
+// just a simple exit syscall
+            nop
+            li      a7, 5
+            ecall
