@@ -86,7 +86,10 @@ SECTIONS
   /* Code and read-only segment                                         */
   /*--------------------------------------------------------------------*/
 
-  /* Begining of code and text segment */
+  /* Begining of code and text segment.
+   * Start at an address > 12bit to ensure all addresses are loaded using
+   * auipc+addi instead of only addi (which is not relocatable)
+  */
   . = 0x00010000;
   _ftext = .;
   PROVIDE( eprol = . );
@@ -94,7 +97,7 @@ SECTIONS
   /* text: Program code section */
   .text :
   {
-    *(.text._start)
+    *(.text._start) /* locate entry point at start of binary */
     *(.text)
     *(.text.*)
     *(.gnu.linkonce.t.*)
@@ -187,6 +190,7 @@ SECTIONS
   /* Have _gp point to middle of sdata/sbss to maximize displacement range */
   . = ALIGN(16);
   _gp = . + 0x800;
+  __global_pointer$ = . + 0x800;
 
   /* Writable small data segment */
   .sdata :
