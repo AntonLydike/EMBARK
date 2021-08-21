@@ -11,7 +11,7 @@ import json
 
 # A set of sections that we want to include in the image
 INCLUDE_THESE_SECTIONS = set((
-    '.text', '.stack', '.bss', '.sdata', 
+    '.text', '.stack', '.bss', '.sdata', '.rdata', '.rodata'
     '.sbss', '.data', '.stack', '.init', 
     '.fini', '.preinit_array', '.init_array', 
     '.fini_array', '.rodata'
