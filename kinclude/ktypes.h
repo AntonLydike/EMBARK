@@ -6,9 +6,10 @@
  */
 
 enum error_code {
-    ENOCODE = -1,   // invalid syscall code
-    EINVAL  = -2,   // invalid argument value
-    ENOMEM  = -3,   // not enough memory
+    ENOCODE = 1,   // invalid syscall code
+    EINVAL  = 2,   // invalid argument value
+    ENOMEM  = 3,   // not enough memory
+    ENOBUFS = 4,   // no space left in buffer
 };
 
 /*
