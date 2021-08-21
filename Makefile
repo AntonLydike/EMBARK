@@ -33,10 +33,10 @@ CFLAGS += -DTEXT_IO_ADDR=0xff0000 -DTEXT_IO_BUFLEN=64
 CFLAGS += -march=$(ARCH)
 
 # dependencies that need to be built:
-_DEPS = ecall.c csr.c sched.c io.o
+_DEPS = ecall.c csr.c sched.c io.c malloc.c
 
 # dependencies as object files:
-_OBJ = ecall.o sched.o boot.o csr.o io.o
+_OBJ = ecall.o sched.o boot.o csr.o io.o malloc.o
 
 
 DEPS  = $(patsubst %,$(KLIBDIR)/%,$(_DEPS))
