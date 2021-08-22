@@ -23,27 +23,29 @@
 // do not define C macros and other C stuff when this is included inside assembly
 #ifndef __assembly
 
-#define CSR_READ(csr_id, result) {\
-    __asm__ ("csrr %0, %1" : "=r"((result)) : "I"((csr_id))); \
+#define CSR_READ(csr_id, result) { \
+        __asm__ ("csrr %0, %1" : "=r"((result)) : "I"((csr_id))); \
 }
 
-#define CSR_WRITE(csr_id, val) {\
-    __asm__ ("csrw %0, %1" :: "I"((csr_id)), "r"((val))); \
+#define CSR_WRITE(csr_id, val) { \
+        __asm__ ("csrw %0, %1" :: "I"((csr_id)), "r"((val))); \
 }
 
-#define HALT(code) {\
-    __asm__("csrw %0, %1" :: "I"(CSR_HALT), "I"(code)); \
+#define HALT(code) { \
+        __asm__ ("csrw %0, %1" :: "I"(CSR_HALT), "I"(code)); \
 }
 
 void write_mtimecmp(unsigned long long int mtimecmp);
 
-inline __attribute__((always_inline)) unsigned long long int read_time() {
+inline __attribute__((always_inline)) unsigned long long int read_time()
+{
     unsigned int lower, higher;
-    __asm__(
-        "csrr %0, %2\n"
-        "csrr %1, %3\n"
-        : "=r"(lower), "=r"(higher)
-        : "i"(CSR_TIME), "i"(CSR_TIMEH)
+
+    __asm__ (
+         "csrr %0, %2\n"
+         "csrr %1, %3\n"
+         : "=r"(lower), "=r"(higher)
+         : "i"(CSR_TIME), "i"(CSR_TIMEH)
     );
     return (unsigned long long) higher << 32 | lower;
 }
