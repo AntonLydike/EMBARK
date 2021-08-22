@@ -8,9 +8,6 @@ typedef struct malloc_info {
     void* allocate_memory_start;
 } malloc_info;
 
-optional_voidptr malloc(size_t size);
-// int free(void* ptr);
-
 optional_voidptr malloc_stack(size_t size);
 
 void malloc_init(malloc_info* info);
