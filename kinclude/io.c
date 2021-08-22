@@ -2,10 +2,6 @@
 
 #ifdef TEXT_IO_ADDR
 
-#ifndef TEXT_IO_BUFLEN
-#error "When defining TEXT_IO_ADDR, please also provide TEXT_IO_BUFLEN, otherwise textIO won't work!"
-#endif
-
 void dbgln(char* text, int len)
 {
     while (len > TEXT_IO_BUFLEN) {
@@ -68,11 +64,7 @@ char* itoa (int value, char* str, int base)
 
 #else
 
-/* if no textIO module loaded, dbgln is a noop :( */
-void dbgln(char* text, int len){}
-char* itoa (int value, char* str, int base) {
-    return str;
-}
+// this is included to prevent "error: ISO C forbids an empty translation unit [-Wpedantic]"
+typedef int make_iso_compilers_happy;
 
 #endif
-
