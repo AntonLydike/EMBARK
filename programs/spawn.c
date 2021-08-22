@@ -1,26 +1,27 @@
-
 #define TEXT_IO_ADDR 0xff0000
 #define TEXT_IO_BUFLEN 64
 
 void dbgln(char*, int);
-char* itoa (int value, char* str, int base);
+char* itoa(int value, char* str, int base);
 
 int thread(void* args);
 
-int main() {
+int main()
+{
     dbgln("main", 4);
 
     int arg = 144;
 
-    __asm__(
-        "mv a0, %0\n"
-        "mv a1, %1\n"
-        "li a7, 1\n"
-        "ecall" :: "r"(thread), "r"(&arg)
+    __asm__ (
+         "mv a0, %0\n"
+         "mv a1, %1\n"
+         "li a7, 1\n"
+         "ecall" :: "r"(thread), "r"(&arg)
     );
 
-    while (arg == 144) {}
-    __asm__("ebreak");
+    while (arg == 144) {
+    }
+    __asm__ ("ebreak");
 
     return 0;
 }
@@ -30,7 +31,8 @@ int thread(void* args)
     int arg = *((int*) args);
     char buff[32] = "the magic number is: ";
     char* end = itoa(arg, &buff[21], 10);
-    dbgln(buff, (int)(end - buff));
+
+    dbgln(buff, (int) (end - buff));
 
     // *((int*) args) = 0;
 
@@ -61,7 +63,7 @@ void dbgln(char* text, int len)
 }
 
 char alpha[16] = "0123456789abcdef";
-char* itoa (int value, char* str, int base)
+char* itoa(int value, char* str, int base)
 {
     if (base > 16 || base < 2) {
         *str++ = '?';
@@ -75,6 +77,7 @@ char* itoa (int value, char* str, int base)
 
     int digits = 0;
     int num = 0;
+
     // reverse number
     do {
         num = num * base;
@@ -89,27 +92,28 @@ char* itoa (int value, char* str, int base)
         value = value / base;
         *str++ = alpha[num];
         digits--;
-    }
-    while (digits > 0);
+    }while (digits > 0);
 
     return str;
 }
 
-void _start() {
-    __asm__(
-        ".option push\n"
-        ".option norelax\n"
-        "            la      gp, _gp\n"
-        ".option pop\n"
+void _start()
+{
+    __asm__ (
+         ".option push\n"
+         ".option norelax\n"
+         "            la      gp, _gp\n"
+         ".option pop\n"
     );
 
     dbgln("start", 5);
     int exit_code = main();
+
     dbgln("end", 3);
 
-    __asm__(
-        "mv     a0, %0\n"
-        "li     a7, 5\n"
-        "ecall" :: "r"(exit_code)
+    __asm__ (
+         "mv     a0, %0\n"
+         "li     a7, 5\n"
+         "ecall" :: "r"(exit_code)
     );
 }
