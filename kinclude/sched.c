@@ -70,7 +70,7 @@ ProcessControlBlock* scheduler_select_free()
         while (pcb != current_process) {
             if (pcb->status == PROC_RDY)
                 return pcb;
-            
+
             if (pcb->status == PROC_WAIT_SLEEP) {
                 if (pcb->asleep_until < mtime) {
                     return pcb;
@@ -97,7 +97,7 @@ ProcessControlBlock* scheduler_select_free()
         }
 
         if (timeout_available == false) {
-            // either process deadlock or no processes alive. 
+            // either process deadlock or no processes alive.
             //TODO: handle missing executable thread
             dbgln("No thread active!", 17);
             HALT(22);
@@ -185,7 +185,7 @@ optional_pcbptr find_available_pcb_slot() {
     int start_index = index;
     ProcessControlBlock* pcb = processes + index;
 
-    while (pcb->status != PROC_DEAD) {        
+    while (pcb->status != PROC_DEAD) {
         index = (index + 1) % PROCESS_COUNT;
         if (index == start_index)
             return (optional_pcbptr) { .error = ENOBUFS };
@@ -288,7 +288,7 @@ void kill_child_processes(ProcessControlBlock* pcb)
 {
     for (int i = 0; i < PROCESS_COUNT; i++) {
         ProcessControlBlock* proc = processes + i;
-        if (proc->parent != pcb) 
+        if (proc->parent != pcb)
             continue;
 
         proc->status = PROC_DEAD;

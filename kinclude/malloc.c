@@ -16,7 +16,7 @@ void malloc_init(malloc_info* given_info)
 optional_voidptr malloc_stack(size_t size)
 {
     void* new_alloc_end = (void*) (((int) allocate_memory_end) - size);
-    if (new_alloc_end < global_malloc_info.allocate_memory_start) 
+    if (new_alloc_end < global_malloc_info.allocate_memory_start)
         return (optional_voidptr) { .error = ENOMEM };
     void* stack_top = allocate_memory_end;
     allocate_memory_end = new_alloc_end;

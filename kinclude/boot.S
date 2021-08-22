@@ -43,7 +43,7 @@ _start:
 
             // jump to init
             jal     init
-            
+
             // halt machine after returning from init
             li      t0, -1
             csrw    CSR_HALT, t0
@@ -130,10 +130,10 @@ memset:
 
 // write a0 to memory starting at a1, until a2 (both must be four byte aligned)
 // this uses a loop which writes 32 (numbytes) bytes at a time
-// to prevent overshooting the end, we first calulate how many instructions to 
+// to prevent overshooting the end, we first calulate how many instructions to
 // skip of the first iteration of the loop. this way, (a2 - a1) is a multiple of
-// (numbytes) when we reach the blt instruction for the first time. 
-// this math works so good, because we write 4 bytes of mem, in 4 bytes of 
+// (numbytes) when we reach the blt instruction for the first time.
+// this math works so good, because we write 4 bytes of mem, in 4 bytes of
 // instructions. Therefore instruction bytes to skip = write bytes to skip
 // bytes to skip = numbytes - ((a2 - a1) % numbytes)
 memset:
@@ -149,7 +149,7 @@ memset:
             auipc   t1, 0           // get current address
             add     t1, t2, t1      // add calulated offset
             jalr    zero, t1, 12    // skip the instructions by forward-jumping
-                                    // the 12 is added to compensate for the 
+                                    // the 12 is added to compensate for the
                                     // three instructions auipc, add, jalr
 1:
             sw      a0, 0(a1)

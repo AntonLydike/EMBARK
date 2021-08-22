@@ -18,6 +18,7 @@ int* get_current_process_registers();
 ProcessControlBlock* get_current_process();
 void mark_ecall_entry();
 
+// process creation / destruction
 optional_pcbptr create_new_process(loaded_binary*, int);
 optional_pcbptr create_new_thread(ProcessControlBlock*, void*, void*, int);
 void kill_child_processes(ProcessControlBlock* pcb);

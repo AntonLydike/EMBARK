@@ -63,7 +63,7 @@ enum pcb_struct_registers {
 
 /* This struct holds information about binaries which are currently loaded into
  * memory. Currently the kernel is not able to load binaries into memory, as
- * no file system layer is implemented. When the memory image is built, the 
+ * no file system layer is implemented. When the memory image is built, the
  * list of loaded binaries is populated aswell.
  */
 typedef struct loaded_binary {
@@ -76,7 +76,7 @@ typedef struct loaded_binary {
 /*
  * Optionals
  *
- * in this kernel, an optional can hold a value or an error, but we can't use 
+ * in this kernel, an optional can hold a value or an error, but we can't use
  * unions here because we need to be able to distinguish errors from results.
  * this is a little space inefficient, but we'll have to deal with this, or else
  * we get global errno variables.
