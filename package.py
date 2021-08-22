@@ -7,13 +7,13 @@ from typing import List, Tuple, Dict, Generator, Union
 import os, sys
 import json
 
-## Configuration: 
+## Configuration:
 
 # A set of sections that we want to include in the image
 INCLUDE_THESE_SECTIONS = set((
     '.text', '.stack', '.bss', '.sdata', '.rdata', '.rodata'
-    '.sbss', '.data', '.stack', '.init', 
-    '.fini', '.preinit_array', '.init_array', 
+    '.sbss', '.data', '.stack', '.init',
+    '.fini', '.preinit_array', '.init_array',
     '.fini_array', '.rodata', '.thread_fini'
 ))
 # these sections are empty, so we don't want to read the elf here
@@ -30,7 +30,7 @@ MEM_START = 0x100
 # process control block struct name
 KERNEL_BINARY_TABLE = 'binary_table'
 # loaded_binary struct size (4 integers)
-KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4 
+KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4
 
 
 ## end of config
@@ -84,7 +84,7 @@ class Bin:
                     self.symtab = {
                         sym.name: sym.entry.st_value for sym in sec.iter_symbols() if sym.name
                     }
-            
+
             self.secs = sorted(self.secs, key=lambda sec: sec.start)
             self.start = self.secs[0].start
 
@@ -119,12 +119,12 @@ class MemImageCreator:
         print(f"  - zeros {pos-len(self.data):8x} {len(self.data):x}:{pos:x}")
         self.put(bytes(pos - len(self.data)), '', '.empty')
         assert len(self.data) == pos
-    
+
     def align(self, bound):
         if len(self.data) % bound != 0:
             self.put(bytes(bound - (len(self.data) % bound)), '', '.empty')
         assert len(self.data) % bound == 0
-        
+
     def put(self, stuff: bytes, parent: str, name: str) -> int:
         pos = len(self.data)
         self.data += stuff
@@ -186,7 +186,7 @@ def package(kernel: str, binaries: List[str], out: str):
     Main logic for creating the image file
     """
     img = MemImageCreator()
-    
+
     # process kernel
     img.seek(MEM_START)
     kernel = Bin(kernel)
