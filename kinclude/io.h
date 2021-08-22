@@ -15,7 +15,7 @@
 void dbgln(char* text, int len);
 
 /* alphabet for itoa */
-char* itoa (int value, char* str, int base);
+char* itoa(int value, char* str, int base);
 
 // if we don't have a textIO module for debugging
 #else
@@ -24,9 +24,9 @@ char* itoa (int value, char* str, int base);
 
 
 // if we don't have textio, dbgln becomes an empty macro to save on cycles
-#define dbgln(a,b)
+#define dbgln(a, b)
 // itoa just evaluates to the passes pointer
-#define itoa(a,b,c) b
+#define itoa(a, b, c) b
 
 #endif
 #endif

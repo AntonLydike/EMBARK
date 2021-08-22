@@ -28,7 +28,7 @@ void dbgln(char* text, int len)
 
 /* alphabet for itoa */
 char alpha[16] = "0123456789abcdef";
-char* itoa (int value, char* str, int base)
+char* itoa(int value, char* str, int base)
 {
     if (base > 16 || base < 2) {
         *str++ = '?';
@@ -42,6 +42,7 @@ char* itoa (int value, char* str, int base)
 
     int digits = 0;
     int num = 0;
+
     // reverse number
     do {
         num = num * base;
@@ -56,8 +57,7 @@ char* itoa (int value, char* str, int base)
         value = value / base;
         *str++ = alpha[num];
         digits--;
-    }
-    while (digits > 0);
+    }while (digits > 0);
 
     return str;
 }
