@@ -24,7 +24,7 @@ optional_int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
 
     if (has_error(pcb_or_err))
         return (optional_int) { .error = pcb_or_err.error };
-    
+
     return (optional_int) { .value = pcb_or_err.value->pid };
 }
 
@@ -51,10 +51,10 @@ optional_int ecall_handle_join(int* args, ProcessControlBlock* pcb)
 
     if (target == NULL)
         return (optional_int) { .error = ESRCH };
-    
+
     if (target->status == PROC_DEAD)
         return (optional_int) { .value = target->exit_code };
-    
+
     pcb->status = PROC_WAIT_PROC;
     pcb->waiting_for_process = target;
 
@@ -64,7 +64,7 @@ optional_int ecall_handle_join(int* args, ProcessControlBlock* pcb)
 
     unsigned int len = (unsigned int) timeout;
     pcb->asleep_until = read_time() + len;
-    
+
     return (optional_int) { .value = 0 };
 }
 
@@ -78,14 +78,16 @@ optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
     pcb->status = PROC_DEAD;
     pcb->exit_code = *args;
 
-    dbgln("exit", 4);
+    if (DEBUGGING) {
+        dbgln("exit", 4);
 
-    char msg[34] = "process    exited with code   ";
+        char msg[34] = "process    exited with code   ";
 
-    itoa(pcb->pid, &msg[8], 10);
-    itoa(*args % 10, &msg[28], 10);
+        itoa(pcb->pid, &msg[8], 10);
+        itoa(*args, &msg[28], 10);
 
-    dbgln(msg, 34);
+        dbgln(msg, 34);
+    }
 
     // recursively kill all child processes
     kill_child_processes(pcb);
@@ -95,7 +97,8 @@ optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 
 #pragma GCC diagnostic pop
 
-void trap_handle_ecall() { 
+void trap_handle_ecall()
+{
     mark_ecall_entry();
     ProcessControlBlock* pcb = get_current_process();
     int *regs = pcb->regs;
@@ -117,11 +120,11 @@ void trap_handle_ecall() {
     // increment pc of this process to move past ecall instruction
     pcb->pc += 4;
 
-    // try to reschedule 
+    // try to reschedule
     scheduler_try_return_to(pcb);
 }
 
-void trap_handle(int interrupt_bit, int code, int mtval) 
+void trap_handle(int interrupt_bit, int code, int mtval)
 {
     if (interrupt_bit) {
         switch (code) {
@@ -153,7 +156,7 @@ void trap_handle(int interrupt_bit, int code, int mtval)
                 handle_exception(code, mtval);
                 break;
             // user or supervisor ecall
-            case 8:    
+            case 8:
             case 9:
                 trap_handle_ecall();
                 break;
@@ -166,7 +169,7 @@ void trap_handle(int interrupt_bit, int code, int mtval)
     __builtin_unreachable();
 }
 
-void init_ecall_table() 
+void init_ecall_table()
 {
     ecall_table[ECALL_SPAWN] = ecall_handle_spawn_thread;
     ecall_table[ECALL_SLEEP] = ecall_handle_sleep;
@@ -175,7 +178,7 @@ void init_ecall_table()
     ecall_table[ECALL_EXIT]  = ecall_handle_exit;
 }
 
-void handle_exception(int ecode, int mtval) 
+void handle_exception(int ecode, int mtval)
 {
     dbgln("exception encountered!", 17);
     __asm__("ebreak");

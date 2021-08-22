@@ -3,9 +3,8 @@
 
 #include "sched.h"
 
-/* ecall codes are defined here
- *
- *
+/*
+ * Maps ecall names to numbers
  */
 enum ecall_codes {
     ECALL_SPAWN = 1,
