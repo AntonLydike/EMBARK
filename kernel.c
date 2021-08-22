@@ -11,7 +11,7 @@ extern ProcessControlBlock processes[PROCESS_COUNT];
 
 // this array is populated when the memory image is built, therefore it should
 // resign in a section which is not overwritten with zeros on startup
-loaded_binary binary_table[NUM_BINARIES] __attribute__ ((section (".data")));
+loaded_binary binary_table[NUM_BINARIES] __attribute__ ((section(".data")));
 
 extern void memset(unsigned int, void*, void*);
 
@@ -31,6 +31,7 @@ void read_binary_table()
     char msg[28] = "found bin with id 0 at pos 0";
 
     malloc_info info;
+
     info.allocate_memory_end = (void*) 0xFF0000;
     info.allocate_memory_start = (void*) 0;
 
@@ -58,10 +59,9 @@ void read_binary_table()
 
         // create a new process for each binary found
         // it should have around 4kb stack
-        optional_pcbptr res = create_new_process(binary_table+i, 1<<12);
+        optional_pcbptr res = create_new_process(binary_table + i, 1 << 12);
         if (has_error(res)) {
             dbgln("Error creating initial process!", 31);
         }
     }
 }
-
