@@ -2,3 +2,4 @@ out/
 *.o
 obj/
 *.img
+*.unc-*~
