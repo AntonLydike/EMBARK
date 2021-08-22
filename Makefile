@@ -11,9 +11,9 @@ GCC_PREF=riscv32-unknown-elf-
 
 CC=$(GCC_PREF)gcc
 OBJDUMP=$(GCC_PREF)objdump
-CFLAGS=-I$(KLIBDIR) -MD -mcmodel=medany -Wall -Wextra -pedantic-errors -Wno-builtin-declaration-mismatch
+CFLAGS=-I$(KLIBDIR) -O3 -MD -mcmodel=medany -Wall -Wextra -pedantic-errors -Wno-builtin-declaration-mismatch
 KERNEL_CFLAGS=-nostdlib -T linker.ld
-ARCH = rv32im							# here you 
+ARCH = rv32im
 
 ### Build configuration:
 
