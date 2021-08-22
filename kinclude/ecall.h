@@ -20,15 +20,10 @@ enum ecall_codes {
 // initializer for ecall lookup table
 void init_ecall_table();
 
-// syscall handlers, are setup in the mtvec csr
-int ecall_handle_spawn(int*, ProcessControlBlock*);
-int ecall_handle_sleep(int*, ProcessControlBlock*);
-int ecall_handle_join(int*, ProcessControlBlock*);
-int ecall_handle_kill(int*, ProcessControlBlock*);
-int ecall_handle_exit(int*, ProcessControlBlock*);
-
+// exception handler
 void handle_exception(int ecode, int mtval);
 
+// called by the assembly trap handler in boot.S
 void __attribute__((__noreturn__)) trap_handle(int interrupt_bit, int code, int mtval);
 
 #endif

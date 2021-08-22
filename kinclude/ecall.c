@@ -5,7 +5,7 @@
 #include "io.h"
 
 // this type is only used here, therefore we don't need it in the ktypes header
-typedef int (*ecall_handler)(int*,ProcessControlBlock*);
+typedef optional_int (*ecall_handler)(int*,ProcessControlBlock*);
 
 ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 
@@ -14,7 +14,7 @@ ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
+optional_int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
 {
     void* entry = (void*) args_ptr[0];  // a0
     void* args  = (void*) args_ptr[1];  // a1
@@ -23,55 +23,57 @@ int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
     optional_pcbptr pcb_or_err = create_new_thread(pcb, entry, args, 1<<14);
 
     if (has_error(pcb_or_err))
-        return pcb_or_err.error;
+        return (optional_int) { .error = pcb_or_err.error };
     
-    return EINVAL;
+    return (optional_int) { .value = pcb_or_err.value->pid };
 }
 
-int ecall_handle_sleep(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_sleep(int* args, ProcessControlBlock* pcb)
 {
-    int len = *args;
+    int len = args[0];
     if (len < 0) {
-        return EINVAL;
+        return (optional_int) { .error = EINVAL };
     }
 
-    pcb->asleep_until = read_time() + len;
-    pcb->status = PROC_WAIT_SLEEP;
+    if (len > 0) {
+        pcb->asleep_until = read_time() + len;
+        pcb->status = PROC_WAIT_SLEEP;
+    }
 
-    return 0;
+    return (optional_int) { .value = 0 };
 }
 
-int ecall_handle_join(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_join(int* args, ProcessControlBlock* pcb)
 {
     int pid = args[0];  // a0
 
     ProcessControlBlock* target = process_from_pid(pid);
 
     if (target == NULL)
-        return ESRCH;
+        return (optional_int) { .error = ESRCH };
     
     if (target->status == PROC_DEAD)
-        return target->exit_code;
+        return (optional_int) { .value = target->exit_code };
     
     pcb->status = PROC_WAIT_PROC;
     pcb->waiting_for_process = target;
 
     int timeout = args[1];
     if (timeout <= 0)
-        return 0;
+        return (optional_int) { .value = 0 };
 
     unsigned int len = (unsigned int) timeout;
     pcb->asleep_until = read_time() + len;
     
-    return 0;
+    return (optional_int) { .value = 0 };
 }
 
-int ecall_handle_kill(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_kill(int* args, ProcessControlBlock* pcb)
 {
-    return EINVAL;
+    return (optional_int) { .error = EINVAL };
 }
 
-int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 {
     pcb->status = PROC_DEAD;
     pcb->exit_code = *args;
@@ -88,7 +90,7 @@ int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
     // recursively kill all child processes
     kill_child_processes(pcb);
 
-    return 0;
+    return (optional_int) { .value = 0 };
 }
 
 #pragma GCC diagnostic pop
@@ -105,12 +107,14 @@ void trap_handle_ecall() {
     if (code < 0 || code > ECALL_TABLE_LEN || ecall_table[code] == 0) {
         regs[REG_A0] = ENOCODE;
     } else {
-        // get the corresponding ecall handler
-        ecall_handler handler = ecall_table[code];
-        regs[REG_A0] = handler(&regs[REG_A0], pcb);
+        // run the corresponding ecall handler
+        optional_int handler_result = ecall_table[code](&regs[REG_A0], pcb);
+        // populate registers with return value and error
+        regs[REG_A0] = handler_result.value;
+        regs[REG_A0 + 1] = handler_result.error;
     }
 
-    // increment pc of this process
+    // increment pc of this process to move past ecall instruction
     pcb->pc += 4;
 
     // try to reschedule 
