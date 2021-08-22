@@ -7,15 +7,20 @@
 // use memset provided in boot.S
 extern void memset(int, void*, void*);
 // this is the address where threads return to
+// it's located in a seprate section at the end of the kernel
 extern int thread_finalizer;
 
-// scheduling data:
+// process list, holds all active and some dead processes
 ProcessControlBlock processes[PROCESS_COUNT];
+// pointer to the currently scheduled process
 ProcessControlBlock* current_process = NULL;
+// timer variables to add kernel time back to the processes time slice
 unsigned long long int scheduling_interrupted_start;
 unsigned long long int next_interrupt_scheduled_for;
+// this counter generates process ids
 int next_process_id = 1;
 
+// run the next process
 void scheduler_run_next ()
 {
     current_process = scheduler_select_free();
@@ -24,20 +29,30 @@ void scheduler_run_next ()
     scheduler_switch_to(current_process);
 }
 
+// try to return to a process
 void scheduler_try_return_to(ProcessControlBlock* pcb)
 {
+    // if the process isn't ready, schedule a new one
     if (pcb->status != PROC_RDY) {
         scheduler_run_next();
     } else {
-        dbgln("returning to process...", 23);
-        current_process = pcb;
-        // add time spent in ecall handler to the processes time slice
-        next_interrupt_scheduled_for = next_interrupt_scheduled_for + (read_time() - scheduling_interrupted_start);
-        write_mtimecmp(next_interrupt_scheduled_for);
-        scheduler_switch_to(current_process);
+        // if we want to return to the current process...
+        if (current_process == pcb) {
+            dbgln("returning to process...", 23);
+            // add time spent in ecall handler to the processes time slice
+            next_interrupt_scheduled_for = next_interrupt_scheduled_for + (read_time() - scheduling_interrupted_start);
+            write_mtimecmp(next_interrupt_scheduled_for);
+            scheduler_switch_to(current_process);
+        } else {
+            // otherwise set a new interrupt
+            set_next_interrupt();
+            current_process = pcb;
+            scheduler_switch_to(current_process);
+        }
     }
 }
 
+// select a new process to run next
 ProcessControlBlock* scheduler_select_free()
 {
     unsigned long long int mtime;
@@ -58,7 +73,6 @@ ProcessControlBlock* scheduler_select_free()
             
             if (pcb->status == PROC_WAIT_SLEEP) {
                 if (pcb->asleep_until < mtime) {
-                    //TODO: set wakeup args!
                     return pcb;
                 }
                 timeout_available = true;
