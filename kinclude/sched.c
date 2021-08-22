@@ -9,29 +9,6 @@ extern void memset(int, void*, void*);
 // this is the address where threads return to
 extern int thread_finalizer;
 
-static void print_num(int num) {
-    char buff[16];
-    char* end = itoa(num, buff, 10);
-    dbgln(buff, (int)(end - buff));
-}
-
-static void print_processes() {
-    char line[12] = "============";
-    char alive[5] = "alive";
-    char dead[4] = "dead";
-    for (int i = 0; i < PROCESS_COUNT; i++) {
-        ProcessControlBlock* pcb = processes + i;
-        print_num(pcb->pid);
-        if (pcb->status == PROC_DEAD) {
-            dbgln(dead, 4);
-        } else {
-            dbgln(alive, 5);
-        }
-        print_num(i);
-        dbgln(line, 12);
-    }
-}
-
 // scheduling data:
 ProcessControlBlock processes[PROCESS_COUNT];
 ProcessControlBlock* current_process = NULL;
@@ -64,7 +41,6 @@ void scheduler_try_return_to(ProcessControlBlock* pcb)
 ProcessControlBlock* scheduler_select_free()
 {
     unsigned long long int mtime;
-    int i;
     int timeout_available = false; // note if a timeout is available
 
     if (current_process == NULL)
@@ -72,7 +48,6 @@ ProcessControlBlock* scheduler_select_free()
 
     while (true) {
         mtime = read_time();
-        int i = 1;
         ProcessControlBlock* pcb = current_process + 1;
         if (pcb > processes + PROCESS_COUNT)
             pcb = processes;

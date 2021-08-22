@@ -93,12 +93,6 @@ int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 
 #pragma GCC diagnostic pop
 
-static void print_num(int num) {
-    char buff[16];
-    char* end = itoa(num, buff, 10);
-    dbgln(buff, (int)(end - buff));
-}
-
 void trap_handle_ecall() { 
     mark_ecall_entry();
     ProcessControlBlock* pcb = get_current_process();
@@ -106,7 +100,6 @@ void trap_handle_ecall() {
     int code = regs[REG_A0 + 7];    // code is inside a7
 
     dbgln("ecall:", 6);
-    print_num(code);
 
     // check if the code is too large/small or if the handler is zero
     if (code < 0 || code > ECALL_TABLE_LEN || ecall_table[code] == 0) {
