@@ -35,7 +35,7 @@ void dbgln(char* text, int len)
     }
 
     char* ioaddr = (char*) TEXT_IO_ADDR + 4;
-    
+
     for (int i = 0; i < len; i++) {
         if (*text == 0)
             break;
