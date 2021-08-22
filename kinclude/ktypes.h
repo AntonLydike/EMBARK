@@ -4,7 +4,7 @@
 #define NULL ((void*) 0)
 
 /*
- *  Error codes
+ * Error codes
  */
 
 enum error_code {
@@ -16,7 +16,7 @@ enum error_code {
 };
 
 /*
- *  Scheduling types
+ * Scheduling types
  */
 
 enum process_status {
@@ -26,7 +26,7 @@ enum process_status {
     PROC_WAIT_SLEEP = 3,
 };
 
-// process structure:
+// forward define structs for recursive references
 typedef struct ProcessControlBlock ProcessControlBlock;
 struct loaded_binary;
 
@@ -74,7 +74,7 @@ typedef struct loaded_binary {
 
 
 /*
- *  Optionals
+ * Optionals
  *
  * in this kernel, an optional can hold a value or an error, but we can't use 
  * unions here because we need to be able to distinguish errors from results.
@@ -82,19 +82,21 @@ typedef struct loaded_binary {
  * we get global errno variables.
  */
 
-#define CreateOptionalOfType(type)\
-typedef struct Optional##type { \
-    enum error_code error;      \
-    type value;                 \
+#define CreateOptionalOfType(type) \
+typedef struct Optional##type {    \
+    enum error_code error;         \
+    type value;                    \
 } optional_##type
 
 #define has_value(optional) (optional.error == 0)
 #define has_error(optional) (!has_value(optional))
 
-
-typedef unsigned int size_t;
+// define some type aliases that only contain ascii character
+// they are used in the name of the struct optional_<name>
 typedef void* voidptr;
 typedef ProcessControlBlock* pcbptr;
+// size_t is another standard type
+typedef unsigned int size_t;
 
 // create optionals for required types
 CreateOptionalOfType(int);
