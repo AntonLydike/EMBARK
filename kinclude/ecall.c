@@ -5,7 +5,7 @@
 #include "io.h"
 
 // this type is only used here, therefore we don't need it in the ktypes header
-typedef optional_int (*ecall_handler)(int*,ProcessControlBlock*);
+typedef optional_int (*ecall_handler)(int*, ProcessControlBlock*);
 
 ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 
@@ -17,10 +17,10 @@ ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 optional_int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
 {
     void* entry = (void*) args_ptr[0];  // a0
-    void* args  = (void*) args_ptr[1];  // a1
+    void* args = (void*) args_ptr[1];   // a1
     //int   flags = args_ptr[2];          // a2
 
-    optional_pcbptr pcb_or_err = create_new_thread(pcb, entry, args, 1<<14);
+    optional_pcbptr pcb_or_err = create_new_thread(pcb, entry, args, 1 << 14);
 
     if (has_error(pcb_or_err))
         return (optional_int) { .error = pcb_or_err.error };
@@ -31,6 +31,7 @@ optional_int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
 optional_int ecall_handle_sleep(int* args, ProcessControlBlock* pcb)
 {
     int len = args[0];
+
     if (len < 0) {
         return (optional_int) { .error = EINVAL };
     }
@@ -59,10 +60,12 @@ optional_int ecall_handle_join(int* args, ProcessControlBlock* pcb)
     pcb->waiting_for_process = target;
 
     int timeout = args[1];
+
     if (timeout <= 0)
         return (optional_int) { .value = 0 };
 
     unsigned int len = (unsigned int) timeout;
+
     pcb->asleep_until = read_time() + len;
 
     return (optional_int) { .value = 0 };
@@ -128,41 +131,41 @@ void trap_handle(int interrupt_bit, int code, int mtval)
 {
     if (interrupt_bit) {
         switch (code) {
-            // timer interrupts
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-                scheduler_run_next();
-                break;
-            default:
-              // impossible
-              HALT(12);
-              break;
+        // timer interrupts
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            scheduler_run_next();
+            break;
+        default:
+            // impossible
+            HALT(12);
+            break;
         }
     } else {
         switch (code) {
-            // any known exception code:
-            case 0:
-            case 1:
-            case 2:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-            case 12:
-            case 13:
-            case 15:
-                handle_exception(code, mtval);
-                break;
-            // user or supervisor ecall
-            case 8:
-            case 9:
-                trap_handle_ecall();
-                break;
-            // unknown code
-            default:
-                HALT(13);
+        // any known exception code:
+        case 0:
+        case 1:
+        case 2:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 12:
+        case 13:
+        case 15:
+            handle_exception(code, mtval);
+            break;
+        // user or supervisor ecall
+        case 8:
+        case 9:
+            trap_handle_ecall();
+            break;
+        // unknown code
+        default:
+            HALT(13);
         }
     }
     HALT(14);
@@ -173,13 +176,13 @@ void init_ecall_table()
 {
     ecall_table[ECALL_SPAWN] = ecall_handle_spawn_thread;
     ecall_table[ECALL_SLEEP] = ecall_handle_sleep;
-    ecall_table[ECALL_JOIN]  = ecall_handle_join;
-    ecall_table[ECALL_KILL]  = ecall_handle_kill;
-    ecall_table[ECALL_EXIT]  = ecall_handle_exit;
+    ecall_table[ECALL_JOIN] = ecall_handle_join;
+    ecall_table[ECALL_KILL] = ecall_handle_kill;
+    ecall_table[ECALL_EXIT] = ecall_handle_exit;
 }
 
 void handle_exception(int ecode, int mtval)
 {
     dbgln("exception encountered!", 17);
-    __asm__("ebreak");
+    __asm__ ("ebreak");
 }
