@@ -45,19 +45,19 @@ struct ProcessControlBlock {
 };
 
 enum pcb_struct_registers {
-    REG_RA = 0,
-    REG_SP = 1,
-    REG_GP = 2,
-    REG_TP = 3,
-    REG_T0 = 4,
-    REG_T1 = 5,
-    REG_t2 = 6,
-    REG_FP = 7,
-    REG_S0 = 7,
-    REG_S1 = 8,
-    REG_A0 = 9,
-    REG_S2 = 17,
-    REG_T3 = 27
+    REG_RA  = 0,
+    REG_SP  = 1,
+    REG_GP  = 2,
+    REG_TP  = 3,
+    REG_T0  = 4,
+    REG_T1  = 5,
+    REG_t2  = 6,
+    REG_FP  = 7,
+    REG_S0  = 7,
+    REG_S1  = 8,
+    REG_A0  = 9,
+    REG_S2  = 17,
+    REG_T3  = 27
 };
 
 
@@ -82,11 +82,11 @@ typedef struct loaded_binary {
  * we get global errno variables.
  */
 
-#define CreateOptionalOfType(type) \
-typedef struct Optional##type {    \
-    enum error_code error;         \
-    type value;                    \
-} optional_##type
+#define CreateOptionalOfType(type)          \
+    typedef struct Optional ## type {       \
+        enum error_code error;              \
+        type value;                         \
+    } optional_ ## type
 
 #define has_value(optional) (optional.error == 0)
 #define has_error(optional) (!has_value(optional))
