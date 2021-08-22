@@ -21,7 +21,7 @@ unsigned long long int next_interrupt_scheduled_for;
 int next_process_id = 1;
 
 // run the next process
-void scheduler_run_next ()
+void scheduler_run_next()
 {
     current_process = scheduler_select_free();
     // set up timer interrupt
@@ -110,42 +110,42 @@ void scheduler_switch_to(ProcessControlBlock* pcb)
     CSR_WRITE(CSR_MEPC, pcb->pc);
 
     // set up registers
-    __asm__(
-        "mv     x31, %0\n"
-        "csrrw  zero, %1, x31\n"
-        "lw     x1,  0(x31)\n"
-        "lw     x2,  4(x31)\n"
-        "lw     x3,  8(x31)\n"
-        "lw     x4,  12(x31)\n"
-        "lw     x5,  16(x31)\n"
-        "lw     x6,  20(x31)\n"
-        "lw     x7,  24(x31)\n"
-        "lw     x8,  28(x31)\n"
-        "lw     x9,  32(x31)\n"
-        "lw     x10, 36(x31)\n"
-        "lw     x11, 40(x31)\n"
-        "lw     x12, 44(x31)\n"
-        "lw     x13, 48(x31)\n"
-        "lw     x14, 52(x31)\n"
-        "lw     x15, 56(x31)\n"
-        "lw     x16, 60(x31)\n"
-        "lw     x17, 64(x31)\n"
-        "lw     x18, 68(x31)\n"
-        "lw     x19, 72(x31)\n"
-        "lw     x20, 76(x31)\n"
-        "lw     x21, 80(x31)\n"
-        "lw     x22, 84(x31)\n"
-        "lw     x23, 88(x31)\n"
-        "lw     x24, 92(x31)\n"
-        "lw     x25, 96(x31)\n"
-        "lw     x26, 100(x31)\n"
-        "lw     x27, 104(x31)\n"
-        "lw     x28, 108(x31)\n"
-        "lw     x29, 112(x31)\n"
-        "lw     x30, 116(x31)\n"
-        "lw     x31, 120(x31)\n"
-        "mret   \n"
-        :: "r"(pcb->regs), "I"(CSR_MSCRATCH)
+    __asm__ (
+         "mv     x31, %0\n"
+         "csrrw  zero, %1, x31\n"
+         "lw     x1,  0(x31)\n"
+         "lw     x2,  4(x31)\n"
+         "lw     x3,  8(x31)\n"
+         "lw     x4,  12(x31)\n"
+         "lw     x5,  16(x31)\n"
+         "lw     x6,  20(x31)\n"
+         "lw     x7,  24(x31)\n"
+         "lw     x8,  28(x31)\n"
+         "lw     x9,  32(x31)\n"
+         "lw     x10, 36(x31)\n"
+         "lw     x11, 40(x31)\n"
+         "lw     x12, 44(x31)\n"
+         "lw     x13, 48(x31)\n"
+         "lw     x14, 52(x31)\n"
+         "lw     x15, 56(x31)\n"
+         "lw     x16, 60(x31)\n"
+         "lw     x17, 64(x31)\n"
+         "lw     x18, 68(x31)\n"
+         "lw     x19, 72(x31)\n"
+         "lw     x20, 76(x31)\n"
+         "lw     x21, 80(x31)\n"
+         "lw     x22, 84(x31)\n"
+         "lw     x23, 88(x31)\n"
+         "lw     x24, 92(x31)\n"
+         "lw     x25, 96(x31)\n"
+         "lw     x26, 100(x31)\n"
+         "lw     x27, 104(x31)\n"
+         "lw     x28, 108(x31)\n"
+         "lw     x29, 112(x31)\n"
+         "lw     x30, 116(x31)\n"
+         "lw     x31, 120(x31)\n"
+         "mret   \n"
+         :: "r"(pcb->regs), "I"(CSR_MSCRATCH)
     );
     __builtin_unreachable();
 }
@@ -180,7 +180,8 @@ void mark_ecall_entry()
     scheduling_interrupted_start = read_time();
 }
 
-optional_pcbptr find_available_pcb_slot() {
+optional_pcbptr find_available_pcb_slot()
+{
     static int index = 0;
     int start_index = index;
     ProcessControlBlock* pcb = processes + index;
@@ -200,6 +201,7 @@ optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
 {
     // try to get a position in the processes list
     optional_pcbptr slot_or_err = find_available_pcb_slot();
+
     // if that failed, we cannot creat a new process
     if (has_error(slot_or_err)) {
         dbgln("No more process structs!", 24);
@@ -208,6 +210,7 @@ optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
 
     // allocate stack for the new process
     optional_voidptr stack_top_or_err = malloc_stack(stack_size); // allocate 4Kib stack
+
     // if that failed, we also can't create a new process
     if (has_error(stack_top_or_err)) {
         dbgln("Error while allocating stack for process", 40);
@@ -242,6 +245,7 @@ optional_pcbptr create_new_thread(ProcessControlBlock* parent, void* entrypoint,
 {
     // try to get a position in the processes list
     optional_pcbptr slot_or_err = find_available_pcb_slot();
+
     // if that failed, we cannot creat a new process
     if (has_error(slot_or_err)) {
         dbgln("No more process structs!", 24);
@@ -250,6 +254,7 @@ optional_pcbptr create_new_thread(ProcessControlBlock* parent, void* entrypoint,
 
     // allocate stack for the new process
     optional_voidptr stack_top_or_err = malloc_stack(stack_size); // allocate 4Kib stack
+
     // if that failed, we also can't create a new process
     if (has_error(stack_top_or_err)) {
         dbgln("Error while allocating stack for thread", 39);
