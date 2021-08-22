@@ -23,7 +23,7 @@ extern void init()
 
     read_binary_table();
 
-    scheduler_run_next();   
+    scheduler_run_next();
 }
 
 void read_binary_table()
@@ -38,10 +38,14 @@ void read_binary_table()
     for (int i = 0; i < NUM_BINARIES; i++) {
         if (binary_table[i].binid == 0)
             break;
-        // print message
-        msg[18] = (char) binary_table[i].binid + '0';
-        msg[27] = (char) i + '0';
-        dbgln(msg, 28);
+
+        if (DEBUGGING) {
+            // print message
+            msg[18] = (char) binary_table[i].binid + '0';
+            msg[27] = (char) i + '0';
+            dbgln(msg, 28);
+        }
+
         info.allocate_memory_start = binary_table[i].bounds[1];
     }
 
