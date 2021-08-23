@@ -21,5 +21,6 @@ void mark_ecall_entry();
 // process creation / destruction
 optional_pcbptr create_new_process(loaded_binary*, int);
 optional_pcbptr create_new_thread(ProcessControlBlock*, void*, void*, int);
+void destroy_process(ProcessControlBlock* pcb);
 void kill_child_processes(ProcessControlBlock* pcb);
 #endif

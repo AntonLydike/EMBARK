@@ -73,7 +73,26 @@ optional_int ecall_handle_join(int* args, ProcessControlBlock* pcb)
 
 optional_int ecall_handle_kill(int* args, ProcessControlBlock* pcb)
 {
-    return (optional_int) { .error = EINVAL };
+    int pid = args[0];
+    ProcessControlBlock* target = process_from_pid(pid);
+
+    // return error if no process has that id
+    if (target == NULL)
+        return (optional_int) { .error = ESRCH };
+
+    // return success if the process is dead
+    if (target == PROC_DEAD)
+        return (optional_int) { .value = 1 };
+
+    // kill target by marking it dead
+    target->status = PROC_DEAD;
+    target->exit_code = -10;    // set unique exit code
+
+    // call process destructor
+    destroy_process(pcb);
+
+    // return success
+    return (optional_int) { .value = 1 };
 }
 
 optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
@@ -92,8 +111,8 @@ optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
         dbgln(msg, 34);
     }
 
-    // recursively kill all child processes
-    kill_child_processes(pcb);
+    // call process destructor
+    destroy_process(pcb);
 
     return (optional_int) { .value = 0 };
 }
@@ -183,6 +202,7 @@ void init_ecall_table()
 
 void handle_exception(int ecode, int mtval)
 {
+    //TODO: handle exceptions well
     dbgln("exception encountered!", 17);
     __asm__ ("ebreak");
 }

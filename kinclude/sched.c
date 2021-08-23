@@ -229,6 +229,7 @@ optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
     pcb->binary = bin;
     pcb->parent = NULL;
     pcb->asleep_until = 0;
+    pcb->stack_top = stack_top_or_err.value;
     // zero out registers
     memset(0, pcb->regs, pcb->regs + 31);
     // load stack top into stack pointer register
@@ -273,6 +274,7 @@ optional_pcbptr create_new_thread(ProcessControlBlock* parent, void* entrypoint,
     pcb->binary = parent->binary;
     pcb->parent = parent;
     pcb->asleep_until = 0;
+    pcb->stack_top = stack_top_or_err.value;
     // zero out registers
     memset(0, pcb->regs, pcb->regs + 31);
     // set return address to global thread finalizer
@@ -293,11 +295,22 @@ void kill_child_processes(ProcessControlBlock* pcb)
 {
     for (int i = 0; i < PROCESS_COUNT; i++) {
         ProcessControlBlock* proc = processes + i;
-        if (proc->parent != pcb)
+        // if this is not a child process or already exited
+        if (proc->parent != pcb || proc->status == PROC_DEAD)
             continue;
 
         proc->status = PROC_DEAD;
         proc->exit_code = -9;   // set arbitrary exit code
         kill_child_processes(proc);
     }
+}
+
+void destroy_process(ProcessControlBlock* pcb)
+{
+    // kill child processes
+    kill_child_processes(pcb);
+    // free allocated stack
+    free_stack(pcb->stack_top);
+    // make sure the thread is not rescheduled
+    pcb->status = PROC_DEAD;
 }

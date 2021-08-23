@@ -42,6 +42,7 @@ struct ProcessControlBlock {
     unsigned long long int asleep_until;
     // parent
     ProcessControlBlock* parent;
+    void* stack_top;
 };
 
 enum pcb_struct_registers {
@@ -88,6 +89,8 @@ typedef struct loaded_binary {
         type value;                         \
     } optional_ ## type
 
+// has_value and has_error are not dependent on the value type
+// therefore we can define them as macros
 #define has_value(optional) (optional.error == 0)
 #define has_error(optional) (!has_value(optional))
 
@@ -103,5 +106,43 @@ CreateOptionalOfType(int);
 CreateOptionalOfType(size_t);
 CreateOptionalOfType(pcbptr);
 CreateOptionalOfType(voidptr);
+
+/*
+ * Stacks
+ *
+ * stacks allow pushing and popping elements off it.
+ */
+
+// we currently only need a voidptr stack, if we need more we can either move them to a separate file
+// or just type cast the pointers afterwards
+struct voidptr_stack {
+    void** data;
+    int pos;
+    int size;
+};
+
+inline void* voidptr_stack_pop(struct voidptr_stack* stack)
+{
+    if (stack->pos == -1)
+        return NULL;
+    return stack->data[stack->pos--];
+}
+
+inline int voidptr_stack_push(struct voidptr_stack* stack, void* ptr)
+{
+    if (stack->pos + 1 > stack->size)
+        return 0;
+
+    stack->pos += 1;
+    stack->data[stack->pos] = ptr;
+    return 1;
+}
+
+inline void voidptr_stack_new(struct voidptr_stack* stack, void** data, int size)
+{
+    stack->pos = -1;
+    stack->size = size;
+    stack->data = data;
+}
 
 #endif
