@@ -2,7 +2,7 @@
 
 Note that these programs are of poor quality.
 
-* `simple.c` does some arithmetic in a loop, occasionally prints something rather random (the sequence goes `90,90,90,2386,2386,ae86,520c,1cbde,...`)
+* `simple.c` does some arithmetic in a loop, occasionally prints something rather random (the sequence goes `90,90,90,2386,2386,ae86,520c,1cbdc,1cbde...`)
 * `spawn.c` this thing spawn a new thread and exits when the thread overwrites a value.
 
 ## Compiling

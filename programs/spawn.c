@@ -34,7 +34,7 @@ int thread(void* args)
 
     dbgln(buff, (int) (end - buff));
 
-    // *((int*) args) = 0;
+    *((int*) args) = 0;
 
     return arg;
 }
