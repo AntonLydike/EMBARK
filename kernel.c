@@ -17,12 +17,15 @@ extern void memset(unsigned int, void*, void*);
 
 extern void init()
 {
-    init_ecall_table();
-
     dbgln("Kernel started!", 15);
-
+    // initialize scheduler
+    scheudler_init();
+    // initialize tabel for associating ecall codes with their handlers
+    init_ecall_table();
+    // read supplied binaries, this will call malloc_init with the memory layout
+    // then it will create a new process for each loaded binary
     read_binary_table();
-
+    // give control to the scheudler and start runnign user programs
     scheduler_run_next();
 }
 

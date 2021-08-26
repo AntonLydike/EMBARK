@@ -29,6 +29,11 @@ void scheduler_run_next()
     scheduler_switch_to(current_process);
 }
 
+void scheudler_init()
+{
+    current_process = processes + PROCESS_COUNT - 1;
+}
+
 // try to return to a process
 void scheduler_try_return_to(ProcessControlBlock* pcb)
 {
@@ -58,47 +63,59 @@ ProcessControlBlock* scheduler_select_free()
     unsigned long long int mtime;
     int timeout_available = false; // note if a timeout is available
 
-    if (current_process == NULL)
-        current_process = processes + PROCESS_COUNT - 1;
-
     while (true) {
         mtime = read_time();
-        ProcessControlBlock* pcb = current_process + 1;
-        if (pcb > processes + PROCESS_COUNT)
-            pcb = processes;
+        // start at the last scheduled process
+        ProcessControlBlock* pcb = current_process;
 
-        while (pcb != current_process) {
+        // iterate once over the whole list
+        do {
+            // get next pcb
+            pcb++;
+            // wrap around the end of the list
+            if (pcb > processes + PROCESS_COUNT)
+                pcb = processes;
+
+            // when we find a process which is ready to be scheduled, return it!
             if (pcb->status == PROC_RDY)
                 return pcb;
 
+            // if it's sleeping, check if it is time to wake it up
             if (pcb->status == PROC_WAIT_SLEEP) {
                 if (pcb->asleep_until < mtime) {
+                    pcb->status = PROC_RDY;
                     return pcb;
                 }
                 timeout_available = true;
             }
 
+            // if it's waiting for another process, check if the process exited
+            // or if is waiting with a timeout, tell it the timeout expired
             if (pcb->status == PROC_WAIT_PROC) {
+                if (pcb->waiting_for_process != NULL &&
+                    pcb->waiting_for_process->status == PROC_DEAD) {
+                    // the requested process exited, so we can set the status code and
+                    pcb->regs[REG_A0] = pcb->waiting_for_process->exit_code;
+                    pcb->regs[REG_A0+1] = 0;
+                    pcb->status = PROC_RDY;
+                    return pcb;
+                }
                 if (pcb->asleep_until != 0) {
                     if (pcb->asleep_until < mtime) {
-                        //TODO: set process return args!
+                        // if the timeout ran out, set an error code
+                        pcb->regs[REG_A0 + 1] = EABORT;
+                        pcb->status = PROC_RDY;
                         return pcb;
                     }
                     timeout_available = true;
                 }
             }
-            pcb++;
-            if (pcb > processes + PROCESS_COUNT)
-                pcb = processes;
-        }
+        } while (pcb != current_process);
 
-        if (current_process->status == PROC_RDY) {
-            return current_process;
-        }
-
+        // when we finished iterating over all processes and no process can be scheduled we have a problem
         if (timeout_available == false) {
-            // either process deadlock or no processes alive.
-            //TODO: handle missing executable thread
+            // either process deadlock without timeout or no processes alive.
+            //TODO: handle deadlocks by killing a process
             dbgln("No thread active!", 17);
             HALT(22);
         }

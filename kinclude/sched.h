@@ -8,6 +8,7 @@
 extern ProcessControlBlock processes[PROCESS_COUNT];
 
 // scheduler methods
+void scheudler_init();
 ProcessControlBlock* scheduler_select_free();
 void set_next_interrupt();
 void __attribute__((noreturn)) scheduler_run_next();

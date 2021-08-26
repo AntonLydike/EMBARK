@@ -13,6 +13,7 @@ enum error_code {
     ENOMEM  = 3,    // not enough memory
     ENOBUFS = 4,    // no space left in buffer
     ESRCH   = 5,    // no such process
+    EABORT  = 6
 };
 
 /*

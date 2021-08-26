@@ -5,35 +5,32 @@ stack_bottom:
 .space      4096
 stack_top:
 
+// put the startup code in a special section so that the linker can position it at the start of the binary
 .section    .text._start
 
+// tell the linker that init is a function located elsewhere
 .extern     init
 .type       init, @function
 
-.extern     trap_handle
-.type       trap_handle, @function
-
-
 .global     _start
 _start:
-            // enable interrupts in mstatus
-            // this is the setting loaded:
-            // [07]    MPIE    =   1  - we want to enable interrupts with mret
-            // [03]    MIE     =   0  - we don't want interrupts now
-            // [11:12] MPP     =   0  - we want to return into user mode
-            // all other bits should be zero
-            li      a0, 0x80
-            csrrw   zero, CSR_MSTATUS, a0         // write to mstatus
-            // setup a0 to hold |trap tbl addr|mode|
-            //              len:| 30          | 2  |
+            // setup mie register, enable timer and software interrupts targeting machine mode
+            // mie[7] MTIE = 1 - enable timer interrupts
+            // mie[3] MSIE = 1 - enable software interrupts
+            li      a0, 0x88
+            csrw    CSR_MIE, a0         // write to mie csr
+            // load trap vector address into a0
             la      a0, trap_vector
-            csrrw   zero, CSR_MTVEC, a0         // write a0 into mtvec csr entry
-            // write
+            csrw    CSR_MTVEC, a0       // write to mtvec csr
+            // enable interrupts in mstatus
+            // mstatus[07] MPIE = 1 - we want to enable interrupts with mret
+            li      a0, 0x80
+            csrw    CSR_MSTATUS, a0     // write to mstatus csr
 .option push
 .option norelax
             // init sp and gp
             la      sp, stack_top
-            la      gp, _gp
+            la      gp, __global_pointer$
 .option pop
             // clear kernel bss section
             mv      a0, zero
@@ -47,8 +44,12 @@ _start:
             // halt machine after returning from init
             li      t0, -1
             csrw    CSR_HALT, t0
+            // if the halt CSR somehow didn't exit immediately trap execution in this infinite loop
 1:
             j       1b
+
+.extern     trap_handle
+.type       trap_handle, @function
 
 .align 4
 trap_vector:
