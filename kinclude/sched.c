@@ -96,7 +96,7 @@ ProcessControlBlock* scheduler_select_free()
                     pcb->waiting_for_process->status == PROC_DEAD) {
                     // the requested process exited, so we can set the status code and
                     pcb->regs[REG_A0] = pcb->waiting_for_process->exit_code;
-                    pcb->regs[REG_A0+1] = 0;
+                    pcb->regs[REG_A0 + 1] = 0;
                     pcb->status = PROC_RDY;
                     return pcb;
                 }

@@ -202,7 +202,12 @@ void init_ecall_table()
 
 void handle_exception(int ecode, int mtval)
 {
-    //TODO: handle exceptions well
-    dbgln("exception encountered!", 17);
-    __asm__ ("ebreak");
+    // kill off offending process
+    ProcessControlBlock* pcb = get_current_process();
+    pcb->status = PROC_DEAD;
+    pcb->exit_code = -99;
+    destroy_process(pcb);
+
+    // run the next process
+    scheduler_run_next();
 }
