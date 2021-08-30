@@ -12,6 +12,9 @@ int main()
 
     int arg = 144;
 
+    // manually invoke syscall to spawn thread
+    // syscall code (a7): 1
+    // args: target function, arg ptr
     __asm__ (
          "mv a0, %0\n"
          "mv a1, %1\n"
@@ -19,25 +22,33 @@ int main()
          "ecall" :: "r"(thread), "r"(&arg)
     );
 
-    while (arg == 144) {
-    }
-    __asm__ ("ebreak");
+    // wait for child thread to modify value
+    while (arg == 144) { }
+
+    dbgln("child exited!", 13);
 
     return 0;
 }
 
 int thread(void* args)
 {
+    // read value
     int arg = *((int*) args);
     char buff[32] = "the magic number is: ";
     char* end = itoa(arg, &buff[21], 10);
-
+    // print given number
     dbgln(buff, (int) (end - buff));
 
+    // set value to free parent thread
     *((int*) args) = 0;
 
+    // return value as exit code
     return arg;
 }
+
+/*
+ * Additional functions
+ */
 
 void dbgln(char* text, int len)
 {
@@ -97,23 +108,31 @@ char* itoa(int value, char* str, int base)
     return str;
 }
 
+void wrap_main()
+{
+    dbgln("start", 5);
+    
+    register int code asm("s1") = main();
+
+    dbgln("end", 3);
+
+    __asm__ __volatile__(
+        "mv     a0, s1\n"
+        "li     a7, 5\n"
+        "ecall\n"
+        "ebreak\n"
+    );
+}
+
 void _start()
 {
-    __asm__ (
+    __asm__ __volatile__(
          ".option push\n"
          ".option norelax\n"
          "            la      gp, _gp\n"
          ".option pop\n"
     );
 
-    dbgln("start", 5);
-    int exit_code = main();
-
-    dbgln("end", 3);
-
-    __asm__ (
-         "mv     a0, %0\n"
-         "li     a7, 5\n"
-         "ecall" :: "r"(exit_code)
-    );
+    wrap_main();
 }
+
