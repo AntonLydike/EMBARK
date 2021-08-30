@@ -8,6 +8,25 @@ import os, sys
 import json
 
 ## Configuration:
+# sector size of the img file in bytes
+SECTOR_SIZE = 512
+
+# start address
+MEM_START = 0x100
+
+# this is the name of the global variable holding the list of loaded binaries
+KERNEL_BINARY_TABLE = 'binary_table'
+# loaded_binary struct size (4 integers)
+KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4
+
+# overwrite this function to generate the entries for the loaded binary list
+def create_loaded_bin_struct(binid: int, entrypoint: int, start: int, end: int):
+    """
+    Creates the binary data to populate the KERNEL_BINARY_TABLE structs
+    """
+    return b''.join(num.to_bytes(4, 'little') for num in (binid, entrypoint, start, end))
+
+## end of config
 
 # A set of sections that we want to include in the image
 INCLUDE_THESE_SECTIONS = set((
@@ -20,20 +39,6 @@ INCLUDE_THESE_SECTIONS = set((
 EMPTY_SECTIONS = set((
     '.bss', '.sbss', '.stack'
 ))
-
-# sector size of the img file in bytes
-SECTOR_SIZE = 512
-
-# start address
-MEM_START = 0x100
-
-# process control block struct name
-KERNEL_BINARY_TABLE = 'binary_table'
-# loaded_binary struct size (4 integers)
-KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4
-
-
-## end of config
 
 def overlaps(p1, l1, p2, l2) -> bool:
     return (p1 <= p2 and p1 + l1 > p2) or (p2 <= p1 and p2 + l2 > p1)
@@ -140,7 +145,7 @@ class MemImageCreator:
             self.put(sec.data, bin.name, sec.name)
         self.dbg_nfo['symbols'][bin.name] = {
             name: bin_start + val - bin.start
-            for name, val in bin.symtab.items()
+            for name, val in sorted(bin.symtab.items(), key=lambda x:x[1])
             if val != 0
         }
         return bin_start
@@ -204,7 +209,7 @@ def package(kernel: str, binaries: List[str], out: str):
         print(f"adding binary \"{bin.name}\"")
         start = img.putBin(bin)
         addr = bin_table_addr + (binid * KERNEL_BINARY_TABLE_ENTRY_SIZE)
-        img.patch(addr, pcb_patch(binid+1, bin.entry - bin.start + start, start, start + bin.size()))
+        img.patch(addr, create_loaded_bin_struct(binid+1, bin.entry - bin.start + start, start, start + bin.size()))
         binid += 1
         print(f"           binary    image")
         print(f"  entry:   {bin.entry:>6x}   {bin.entry - bin.start + start:>6x}")
@@ -213,16 +218,11 @@ def package(kernel: str, binaries: List[str], out: str):
     img.write(out)
 
 
-def pcb_patch(binid: int, entrypoint: int, start: int, end: int):
-    """
-    Creates the binary data to populate the KERNEL_BINARY_TABLE structs
-    """
-    return b''.join(num.to_bytes(4, 'little') for num in (binid, entrypoint, start, end))
-
-
 if __name__ == '__main__':
     if '--help' in sys.argv or len(sys.argv) == 1:
-        print_help()
+        print("package.py <kernel path> <user path> [<user path>...] <output path>\n\
+\n\
+Generate a memory image with the given kernel and userspace binaries.")
     else:
         print(f"creating image {sys.argv[-1]}")
         package(sys.argv[1], sys.argv[2:-1], sys.argv[-1])
