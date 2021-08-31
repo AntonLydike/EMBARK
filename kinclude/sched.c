@@ -86,7 +86,7 @@ struct process_control_block* scheduler_select_free()
                     pcb->status = PROC_RDY;
                     return pcb;
                 }
-                timeout_available = true;
+                timeout_available = 1;
             }
 
             // if it's waiting for another process, check if the process exited
@@ -107,13 +107,13 @@ struct process_control_block* scheduler_select_free()
                         pcb->status = PROC_RDY;
                         return pcb;
                     }
-                    timeout_available = true;
+                    timeout_available = 1;
                 }
             }
         } while (pcb != current_process);
 
         // when we finished iterating over all processes and no process can be scheduled we have a problem
-        if (timeout_available == false) {
+        if (timeout_available == 0) {
             // either process deadlock without timeout or no processes alive.
             //TODO: handle deadlocks by killing a process
             dbgln("No thread active!", 17);

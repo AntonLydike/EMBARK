@@ -33,10 +33,10 @@ void read_binary_table()
 {
     char msg[28] = "found bin with id 0 at pos 0";
 
-    malloc_info info;
-
-    info.allocate_memory_end = (void*) 0xFF0000;
-    info.allocate_memory_start = (void*) 0;
+    malloc_info info = {
+        .allocate_memory_end    = (void*) 0xFF0000,
+        .allocate_memory_start  = (void*) 0
+    };
 
     // calculate the end of loaded binaries
     for (int i = 0; i < NUM_BINARIES; i++) {
