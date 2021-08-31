@@ -23,7 +23,8 @@ int main()
     );
 
     // wait for child thread to modify value
-    while (arg == 144) { }
+    while (arg == 144) {
+    }
 
     dbgln("child exited!", 13);
 
@@ -36,6 +37,7 @@ int thread(void* args)
     int arg = *((int*) args);
     char buff[32] = "the magic number is: ";
     char* end = itoa(arg, &buff[21], 10);
+
     // print given number
     dbgln(buff, (int) (end - buff));
 
@@ -111,28 +113,27 @@ char* itoa(int value, char* str, int base)
 void wrap_main()
 {
     dbgln("start", 5);
-    
-    register int code asm("s1") = main();
+
+    register int code asm ("s1") = main();
 
     dbgln("end", 3);
 
-    __asm__ __volatile__(
-        "mv     a0, s1\n"
-        "li     a7, 5\n"
-        "ecall\n"
-        "ebreak\n"
+    __asm__ __volatile__ (
+         "mv     a0, s1\n"
+         "li     a7, 5\n"
+         "ecall\n"
+         "ebreak\n"
     );
 }
 
 void _start()
 {
-    __asm__ __volatile__(
-         ".option push\n"
-         ".option norelax\n"
-         "            la      gp, _gp\n"
-         ".option pop\n"
+    __asm__ __volatile__ (
+          ".option push\n"
+          ".option norelax\n"
+          "            la      gp, _gp\n"
+          ".option pop\n"
     );
 
     wrap_main();
 }
-
