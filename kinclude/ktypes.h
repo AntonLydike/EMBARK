@@ -28,21 +28,21 @@ enum process_status {
 };
 
 // forward define structs for recursive references
-typedef struct ProcessControlBlock ProcessControlBlock;
+struct process_control_block;
 struct loaded_binary;
 
-struct ProcessControlBlock {
+struct process_control_block {
     int pid;
     int pc;
     int regs[31];
     int exit_code;
     // scheduling information
     enum process_status status;
-    ProcessControlBlock* waiting_for_process;
+    struct process_control_block* waiting_for_process;
     struct loaded_binary* binary;
     unsigned long long int asleep_until;
     // parent
-    ProcessControlBlock* parent;
+    struct process_control_block* parent;
     void* stack_top;
 };
 
@@ -98,7 +98,7 @@ typedef struct loaded_binary {
 // define some type aliases that only contain ascii character
 // they are used in the name of the struct optional_<name>
 typedef void* voidptr;
-typedef ProcessControlBlock* pcbptr;
+typedef struct process_control_block* pcbptr;
 // size_t is another standard type
 typedef unsigned int size_t;
 

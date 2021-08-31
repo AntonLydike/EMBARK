@@ -7,7 +7,7 @@
 
 void read_binary_table();
 
-extern ProcessControlBlock processes[PROCESS_COUNT];
+extern struct process_control_block processes[PROCESS_COUNT];
 
 // this array is populated when the memory image is built, therefore it should
 // resign in a section which is not overwritten with zeros on startup

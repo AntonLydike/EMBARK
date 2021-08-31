@@ -11,9 +11,9 @@ extern void memset(int, void*, void*);
 extern int thread_finalizer;
 
 // process list, holds all active and some dead processes
-ProcessControlBlock processes[PROCESS_COUNT];
+struct process_control_block processes[PROCESS_COUNT];
 // pointer to the currently scheduled process
-ProcessControlBlock* current_process = NULL;
+struct process_control_block* current_process = NULL;
 // timer variables to add kernel time back to the processes time slice
 unsigned long long int scheduling_interrupted_start;
 unsigned long long int next_interrupt_scheduled_for;
@@ -35,7 +35,7 @@ void scheudler_init()
 }
 
 // try to return to a process
-void scheduler_try_return_to(ProcessControlBlock* pcb)
+void scheduler_try_return_to(struct process_control_block* pcb)
 {
     // if the process isn't ready, schedule a new one
     if (pcb->status != PROC_RDY) {
@@ -58,15 +58,15 @@ void scheduler_try_return_to(ProcessControlBlock* pcb)
 }
 
 // select a new process to run next
-ProcessControlBlock* scheduler_select_free()
+struct process_control_block* scheduler_select_free()
 {
     unsigned long long int mtime;
-    int timeout_available = false; // note if a timeout is available
+    int timeout_available = 0; // note if a timeout is available
 
-    while (true) {
+    while (1) {
         mtime = read_time();
         // start at the last scheduled process
-        ProcessControlBlock* pcb = current_process;
+        struct process_control_block* pcb = current_process;
 
         // iterate once over the whole list
         do {
@@ -122,7 +122,7 @@ ProcessControlBlock* scheduler_select_free()
     }
 }
 
-void scheduler_switch_to(ProcessControlBlock* pcb)
+void scheduler_switch_to(struct process_control_block* pcb)
 {
     CSR_WRITE(CSR_MEPC, pcb->pc);
 
@@ -167,7 +167,7 @@ void scheduler_switch_to(ProcessControlBlock* pcb)
     __builtin_unreachable();
 }
 
-ProcessControlBlock* process_from_pid(int pid)
+struct process_control_block* process_from_pid(int pid)
 {
     for (int i = 0; i < PROCESS_COUNT; i++) {
         if (processes[i].pid == pid)
@@ -181,7 +181,7 @@ int* get_current_process_registers()
     return current_process->regs;
 }
 
-ProcessControlBlock* get_current_process()
+struct process_control_block* get_current_process()
 {
     return current_process;
 }
@@ -201,7 +201,7 @@ optional_pcbptr find_available_pcb_slot()
 {
     static int index = 0;
     int start_index = index;
-    ProcessControlBlock* pcb = processes + index;
+    struct process_control_block* pcb = processes + index;
 
     while (pcb->status != PROC_DEAD) {
         index = (index + 1) % PROCESS_COUNT;
@@ -234,7 +234,7 @@ optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
         return (optional_pcbptr) { .error = stack_top_or_err.error };
     }
 
-    ProcessControlBlock* pcb = slot_or_err.value;
+    struct process_control_block* pcb = slot_or_err.value;
 
     // determine next pid
     int pid = next_process_id++;
@@ -259,7 +259,7 @@ optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
     return (optional_pcbptr) { .value = pcb };
 }
 
-optional_pcbptr create_new_thread(ProcessControlBlock* parent, void* entrypoint, void* args, int stack_size)
+optional_pcbptr create_new_thread(struct process_control_block* parent, void* entrypoint, void* args, int stack_size)
 {
     // try to get a position in the processes list
     optional_pcbptr slot_or_err = find_available_pcb_slot();
@@ -279,7 +279,7 @@ optional_pcbptr create_new_thread(ProcessControlBlock* parent, void* entrypoint,
         return (optional_pcbptr) { .error = stack_top_or_err.error };
     }
 
-    ProcessControlBlock* pcb = slot_or_err.value;
+    struct process_control_block* pcb = slot_or_err.value;
 
     // determine next pid
     int pid = next_process_id++;
@@ -308,10 +308,10 @@ optional_pcbptr create_new_thread(ProcessControlBlock* parent, void* entrypoint,
     return (optional_pcbptr) { .value = pcb };
 }
 
-void kill_child_processes(ProcessControlBlock* pcb)
+void kill_child_processes(struct process_control_block* pcb)
 {
     for (int i = 0; i < PROCESS_COUNT; i++) {
-        ProcessControlBlock* proc = processes + i;
+        struct process_control_block* proc = processes + i;
         // if this is not a child process or already exited
         if (proc->parent != pcb || proc->status == PROC_DEAD)
             continue;
@@ -322,7 +322,7 @@ void kill_child_processes(ProcessControlBlock* pcb)
     }
 }
 
-void destroy_process(ProcessControlBlock* pcb)
+void destroy_process(struct process_control_block* pcb)
 {
     // kill child processes
     kill_child_processes(pcb);

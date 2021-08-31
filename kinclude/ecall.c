@@ -5,7 +5,7 @@
 #include "io.h"
 
 // this type is only used here, therefore we don't need it in the ktypes header
-typedef optional_int (*ecall_handler)(int*, ProcessControlBlock*);
+typedef optional_int (*ecall_handler)(int*, struct process_control_block*);
 
 ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 
@@ -14,7 +14,7 @@ ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-optional_int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
+optional_int ecall_handle_spawn_thread(int* args_ptr, struct process_control_block* pcb)
 {
     void* entry = (void*) args_ptr[0];  // a0
     void* args = (void*) args_ptr[1];   // a1
@@ -28,7 +28,7 @@ optional_int ecall_handle_spawn_thread(int* args_ptr, ProcessControlBlock* pcb)
     return (optional_int) { .value = pcb_or_err.value->pid };
 }
 
-optional_int ecall_handle_sleep(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_sleep(int* args, struct process_control_block* pcb)
 {
     int len = args[0];
 
@@ -44,11 +44,11 @@ optional_int ecall_handle_sleep(int* args, ProcessControlBlock* pcb)
     return (optional_int) { .value = 0 };
 }
 
-optional_int ecall_handle_join(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_join(int* args, struct process_control_block* pcb)
 {
     int pid = args[0];  // a0
 
-    ProcessControlBlock* target = process_from_pid(pid);
+    struct process_control_block* target = process_from_pid(pid);
 
     if (target == NULL)
         return (optional_int) { .error = ESRCH };
@@ -71,10 +71,10 @@ optional_int ecall_handle_join(int* args, ProcessControlBlock* pcb)
     return (optional_int) { .value = 0 };
 }
 
-optional_int ecall_handle_kill(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_kill(int* args, struct process_control_block* pcb)
 {
     int pid = args[0];
-    ProcessControlBlock* target = process_from_pid(pid);
+    struct process_control_block* target = process_from_pid(pid);
 
     // return error if no process has that id
     if (target == NULL)
@@ -95,7 +95,7 @@ optional_int ecall_handle_kill(int* args, ProcessControlBlock* pcb)
     return (optional_int) { .value = 1 };
 }
 
-optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
+optional_int ecall_handle_exit(int* args, struct process_control_block* pcb)
 {
     pcb->status = PROC_DEAD;
     pcb->exit_code = *args;
@@ -120,7 +120,7 @@ optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
 void trap_handle_ecall()
 {
     mark_ecall_entry();
-    ProcessControlBlock* pcb = get_current_process();
+    struct process_control_block* pcb = get_current_process();
     int *regs = pcb->regs;
     int code = regs[REG_A0 + 7];    // code is stored inside a7
 
@@ -199,7 +199,7 @@ void init_ecall_table()
 void handle_exception(int ecode, int mtval)
 {
     // kill off offending process
-    ProcessControlBlock* pcb = get_current_process();
+    struct process_control_block* pcb = get_current_process();
 
     pcb->status = PROC_DEAD;
     pcb->exit_code = -99;
