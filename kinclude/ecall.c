@@ -101,8 +101,6 @@ optional_int ecall_handle_exit(int* args, ProcessControlBlock* pcb)
     pcb->exit_code = *args;
 
     if (DEBUGGING) {
-        dbgln("exit", 4);
-
         char msg[34] = "process    exited with code   ";
 
         itoa(pcb->pid, &msg[8], 10);
@@ -124,12 +122,10 @@ void trap_handle_ecall()
     mark_ecall_entry();
     ProcessControlBlock* pcb = get_current_process();
     int *regs = pcb->regs;
-    int code = regs[REG_A0 + 7];    // code is inside a7
-
-    dbgln("ecall:", 6);
+    int code = regs[REG_A0 + 7];    // code is stored inside a7
 
     // check if the code is too large/small or if the handler is zero
-    if (code < 0 || code > ECALL_TABLE_LEN || ecall_table[code] == 0) {
+    if (code < 0 || code > ECALL_TABLE_LEN || ecall_table[code] == NULL) {
         regs[REG_A0] = ENOCODE;
     } else {
         // run the corresponding ecall handler
@@ -204,6 +200,7 @@ void handle_exception(int ecode, int mtval)
 {
     // kill off offending process
     ProcessControlBlock* pcb = get_current_process();
+
     pcb->status = PROC_DEAD;
     pcb->exit_code = -99;
     destroy_process(pcb);
