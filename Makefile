@@ -16,7 +16,7 @@ KERNEL_CFLAGS=-nostdlib -T linker.ld
 ARCH = rv32im
 
 ### Build configuration:
-# Define the maximum number of running processes 
+# Define the maximum number of running processes
 PROCESS_COUNT = 8
 
 # Define the maximum number of binaries packaged with the kernel
