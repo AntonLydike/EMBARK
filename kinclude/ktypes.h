@@ -13,7 +13,7 @@ enum error_code {
     ENOMEM  = 3,    // not enough memory
     ENOBUFS = 4,    // no space left in buffer
     ESRCH   = 5,    // no such process
-    EABORT  = 6
+    ETIMEOUT= 6     // timeout while waiting
 };
 
 /*
@@ -33,16 +33,18 @@ struct loaded_binary;
 
 struct process_control_block {
     int pid;
+    // state information
     int pc;
     int regs[31];
     int exit_code;
     // scheduling information
     enum process_status status;
     struct process_control_block* waiting_for_process;
-    struct loaded_binary* binary;
     unsigned long long int asleep_until;
-    // parent
+    // hierarchical information
+    struct loaded_binary* binary;
     struct process_control_block* parent;
+    // memory management information
     void* stack_top;
 };
 

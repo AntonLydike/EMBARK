@@ -103,7 +103,7 @@ struct process_control_block* scheduler_select_free()
                 if (pcb->asleep_until != 0) {
                     if (pcb->asleep_until < mtime) {
                         // if the timeout ran out, set an error code
-                        pcb->regs[REG_A0 + 1] = EABORT;
+                        pcb->regs[REG_A0 + 1] = ETIMEOUT;
                         pcb->status = PROC_RDY;
                         return pcb;
                     }
