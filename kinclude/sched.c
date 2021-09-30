@@ -15,8 +15,8 @@ struct process_control_block processes[PROCESS_COUNT];
 // pointer to the currently scheduled process
 struct process_control_block* current_process = NULL;
 // timer variables to add kernel time back to the processes time slice
-unsigned long long int scheduling_interrupted_start;
-unsigned long long int next_interrupt_scheduled_for;
+uint64 scheduling_interrupted_start;
+uint64 next_interrupt_scheduled_for;
 // this counter generates process ids
 int next_process_id = 1;
 
@@ -60,7 +60,7 @@ void scheduler_try_return_to(struct process_control_block* pcb)
 // select a new process to run next
 struct process_control_block* scheduler_select_free()
 {
-    unsigned long long int mtime;
+    uint64 mtime;
     int timeout_available = 0; // note if a timeout is available
 
     while (1) {
@@ -122,6 +122,7 @@ struct process_control_block* scheduler_select_free()
     }
 }
 
+// performs the context switch from kernel to userspace mode
 void scheduler_switch_to(struct process_control_block* pcb)
 {
     CSR_WRITE(CSR_MEPC, pcb->pc);
@@ -167,6 +168,7 @@ void scheduler_switch_to(struct process_control_block* pcb)
     __builtin_unreachable();
 }
 
+// get a PCB from a pid
 struct process_control_block* process_from_pid(int pid)
 {
     for (int i = 0; i < PROCESS_COUNT; i++) {
@@ -186,6 +188,7 @@ struct process_control_block* get_current_process()
     return current_process;
 }
 
+// this method sets up the mtimecmp register to trigger the next timer interrupt
 void set_next_interrupt()
 {
     next_interrupt_scheduled_for = read_time() + TIME_SLICE_LEN;
@@ -197,14 +200,20 @@ void mark_ecall_entry()
     scheduling_interrupted_start = read_time();
 }
 
+// this function selects an unused entry in the processes list
+// it tries to select slots which have been unused the longest
 optional_pcbptr find_available_pcb_slot()
 {
+    // this method loops over the process list using an index which persists
+    // over multiple function calls, wrapping when it reaches the end. This
+    // makes free space selection relatively fair.
     static int index = 0;
     int start_index = index;
     struct process_control_block* pcb = processes + index;
 
     while (pcb->status != PROC_DEAD) {
         index = (index + 1) % PROCESS_COUNT;
+        // if we iterated over the whole list and found nothing, we have no space left!
         if (index == start_index)
             return (optional_pcbptr) { .error = ENOBUFS };
         pcb = processes + index;
@@ -214,9 +223,9 @@ optional_pcbptr find_available_pcb_slot()
     return (optional_pcbptr) { .value = pcb };
 }
 
-optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
+optional_pcbptr create_new_process(loaded_binary* bin)
 {
-    // try to get a position in the processes list
+    // try to get an unused entry in the processes list
     optional_pcbptr slot_or_err = find_available_pcb_slot();
 
     // if that failed, we cannot creat a new process
@@ -226,7 +235,7 @@ optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
     }
 
     // allocate stack for the new process
-    optional_voidptr stack_top_or_err = malloc_stack(stack_size); // allocate 4Kib stack
+    optional_voidptr stack_top_or_err = malloc_stack(); // allocate stack
 
     // if that failed, we also can't create a new process
     if (has_error(stack_top_or_err)) {
@@ -259,9 +268,9 @@ optional_pcbptr create_new_process(loaded_binary* bin, int stack_size)
     return (optional_pcbptr) { .value = pcb };
 }
 
-optional_pcbptr create_new_thread(struct process_control_block* parent, void* entrypoint, void* args, int stack_size)
+optional_pcbptr create_new_thread(struct process_control_block* parent, void* entrypoint, void* args)
 {
-    // try to get a position in the processes list
+    // try to get an unused entry in the processes list
     optional_pcbptr slot_or_err = find_available_pcb_slot();
 
     // if that failed, we cannot creat a new process
@@ -271,7 +280,7 @@ optional_pcbptr create_new_thread(struct process_control_block* parent, void* en
     }
 
     // allocate stack for the new process
-    optional_voidptr stack_top_or_err = malloc_stack(stack_size); // allocate 4Kib stack
+    optional_voidptr stack_top_or_err = malloc_stack(); // allocate stack
 
     // if that failed, we also can't create a new process
     if (has_error(stack_top_or_err)) {

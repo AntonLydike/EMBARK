@@ -16,6 +16,9 @@
 #define CSR_MTIMECMP    0x780       // mtimecmp register for timer interrupts
 #define CSR_MTIMECMPH   0x781       // mtimecmph register for timer interrupts
 
+#define CSR_PMPCFG      0x3A0       // start of physical memory protection config
+#define CSR_PMPADDR     0x3B0       // start of pmp addresses
+
 #ifndef CSR_HALT
 #define CSR_HALT        0x789       // writing nonzero value here will halt the cpu
 #endif
@@ -35,19 +38,19 @@
         __asm__ ("csrw %0, %1" :: "I"(CSR_HALT), "I"(code)); \
 }
 
-void write_mtimecmp(unsigned long long int mtimecmp);
+void write_mtimecmp(uint64 mtimecmp);
 
-inline __attribute__((always_inline)) unsigned long long int read_time()
+inline __attribute__((always_inline)) uint64 read_time()
 {
     unsigned int lower, higher;
 
-    __asm__ volatile(
-         "csrr %0, %2\n"
-         "csrr %1, %3\n"
-         : "=r"(lower), "=r"(higher)
-         : "i"(CSR_TIME), "i"(CSR_TIMEH)
+    __asm__ volatile (
+          "csrr %0, %2\n"
+          "csrr %1, %3\n"
+          : "=r"(lower), "=r"(higher)
+          : "i"(CSR_TIME), "i"(CSR_TIMEH)
     );
-    return (unsigned long long) higher << 32 | lower;
+    return (uint64) higher << 32 | lower;
 }
 
 #endif

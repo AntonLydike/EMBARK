@@ -9,12 +9,13 @@ int main()
     struct optional_int t1 = spawn(thread, &arg1);
 
     if (has_error(t1)) {
-        __asm__("ebreak");
+        __asm__ ("ebreak");
         return 1;
     }
     struct optional_int t2 = spawn(thread, &arg2);
+
     if (has_error(t2)) {
-        __asm__("ebreak");
+        __asm__ ("ebreak");
         return 2;
     }
 
@@ -36,6 +37,7 @@ int thread(void* args)
 {
     // read value
     int arg = *((int*) args);
+
     //char buff[64] = "sleeping for ";
     //char* end = itoa(arg, &buff[13], 10);
 
@@ -118,12 +120,10 @@ void _start()
           "            la      gp, _gp\n"
           ".option pop\n"
     );
-
-    register int code asm ("s1") = main();
+    main();
     __asm__ __volatile__ (
-         "mv     a0, s1\n"
          "li     a7, 5\n"
          "ecall\n"
-         "ebreak\n"
     );
+    __builtin_unreachable();
 }

@@ -1,7 +1,13 @@
 #ifndef H_ktypes
 #define H_ktypes
 
+// define the nullpointer
 #define NULL ((void*) 0)
+
+// types with explicit bit-widths
+typedef unsigned int uint32;
+typedef unsigned long long uint64;
+typedef unsigned char byte;
 
 /*
  * Error codes

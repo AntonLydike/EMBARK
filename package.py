@@ -14,17 +14,8 @@ SECTOR_SIZE = 512
 # start address
 MEM_START = 0x100
 
-# this is the name of the global variable holding the list of loaded binaries
-KERNEL_BINARY_TABLE = 'binary_table'
-# loaded_binary struct size (4 integers)
-KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4
-
-# overwrite this function to generate the entries for the loaded binary list
-def create_loaded_bin_struct(binid: int, entrypoint: int, start: int, end: int):
-    """
-    Creates the binary data to populate the KERNEL_BINARY_TABLE structs
-    """
-    return b''.join(num.to_bytes(4, 'little') for num in (binid, entrypoint, start, end))
+# address where the userspace binaries should be located  (-1 to start directly after the kernel)
+USR_BIN_START = -1
 
 ## end of config
 
@@ -40,7 +31,23 @@ EMPTY_SECTIONS = set((
     '.bss', '.sbss', '.stack'
 ))
 
+# this is the name of the global variable holding the list of loaded binaries
+KERNEL_BINARY_TABLE = 'binary_table'
+# loaded_binary struct size (4 integers)
+KERNEL_BINARY_TABLE_ENTRY_SIZE = 4 * 4
+
+# overwrite this function to generate the entries for the loaded binary list
+def create_loaded_bin_struct(binid: int, entrypoint: int, start: int, end: int):
+    """
+    Creates the binary data to populate the KERNEL_BINARY_TABLE structs
+    """
+    return b''.join(num.to_bytes(4, 'little') for num in (binid, entrypoint, start, end))
+
+
 def overlaps(p1, l1, p2, l2) -> bool:
+    """
+    check if the intervals (p1, p1+l1) and (p2, p2+l2) overlap
+    """
     return (p1 <= p2 and p1 + l1 > p2) or (p2 <= p1 and p2 + l2 > p1)
 
 class Section:
@@ -201,6 +208,9 @@ def package(kernel: str, binaries: List[str], out: str):
 
 
     img.putBin(kernel)
+
+    if USR_BIN_START > 0:
+        img.seek(USR_BIN_START)
 
     binid = 0
     for bin_name in binaries:

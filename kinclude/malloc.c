@@ -5,7 +5,7 @@
 #include "io.h"
 
 // information about the systems memory layout is stored here
-static malloc_info global_malloc_info = { 0 };
+static struct malloc_info global_malloc_info = { 0 };
 // this pointer points to the end of unused memory
 static void* allocate_memory_end;
 // this stack holds currently unused program stacks
@@ -22,8 +22,11 @@ void stash_stack(void* stack_top)
     }
 }
 
-void malloc_init(malloc_info* given_info)
+// this function is called by the kernels init() function after it parsed the
+// list of loaded binaries and calculated the available memory for general allocation
+void malloc_init(struct malloc_info* given_info)
 {
+    // save the passed info
     global_malloc_info = *given_info;
     allocate_memory_end = given_info->allocate_memory_end;
     allocate_memory_end = (void*) (((int) allocate_memory_end) - PROCESS_COUNT);
@@ -53,6 +56,8 @@ optional_voidptr malloc_stack()
     return (optional_voidptr) { .value = stack_top };
 }
 
+// a stack is not returned to the general memory pool (since EMBARK has no such
+// pool) but rather just added to the pool of free process stacks.
 void free_stack(void* stack_top)
 {
     stash_stack(stack_top);

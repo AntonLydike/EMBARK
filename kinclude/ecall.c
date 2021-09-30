@@ -16,12 +16,15 @@ ecall_handler ecall_table[ECALL_TABLE_LEN] = { 0 };
 
 optional_int ecall_handle_spawn_thread(int* args_ptr, struct process_control_block* pcb)
 {
+    // args_ptr is a pointer to the pcb->regs field, starting at a0.
+    // args_ptr[0] is a0, args_ptr[1] is a1, etc.
     void* entry = (void*) args_ptr[0];  // a0
     void* args = (void*) args_ptr[1];   // a1
-    //int   flags = args_ptr[2];          // a2
 
-    optional_pcbptr pcb_or_err = create_new_thread(pcb, entry, args, 1 << 14);
+    // create a new thread
+    optional_pcbptr pcb_or_err = create_new_thread(pcb, entry, args);
 
+    // if an error occured, pass it along to the process
     if (has_error(pcb_or_err))
         return (optional_int) { .error = pcb_or_err.error };
 
@@ -30,12 +33,15 @@ optional_int ecall_handle_spawn_thread(int* args_ptr, struct process_control_blo
 
 optional_int ecall_handle_sleep(int* args, struct process_control_block* pcb)
 {
+    // read len from a0
     int len = args[0];
 
+    // only allow sleeping for positive intervals
     if (len < 0) {
         return (optional_int) { .error = EINVAL };
     }
 
+    // if a positive interval is given, calculate the wakeup time
     if (len > 0) {
         pcb->asleep_until = read_time() + len;
         pcb->status = PROC_WAIT_SLEEP;
@@ -46,28 +52,35 @@ optional_int ecall_handle_sleep(int* args, struct process_control_block* pcb)
 
 optional_int ecall_handle_join(int* args, struct process_control_block* pcb)
 {
-    int pid = args[0];  // a0
+    int pid = args[0];  // read pid from processes a0 register
 
+    // find the referenced process
     struct process_control_block* target = process_from_pid(pid);
 
     if (target == NULL)
         return (optional_int) { .error = ESRCH };
 
+    // if the process is dead, join can return immediately
     if (target->status == PROC_DEAD)
         return (optional_int) { .value = target->exit_code };
 
+    // mark the current process as waiting for the target process
     pcb->status = PROC_WAIT_PROC;
     pcb->waiting_for_process = target;
 
+    // check if a valid timeout was passed in register a1
     int timeout = args[1];
 
     if (timeout <= 0)
         return (optional_int) { .value = 0 };
 
+    // set the asleep_until field
     unsigned int len = (unsigned int) timeout;
 
     pcb->asleep_until = read_time() + len;
 
+    // here we can return whatever value we want, as it is overwritten when
+    // the process is awoken again
     return (optional_int) { .value = 0 };
 }
 
@@ -100,6 +113,7 @@ optional_int ecall_handle_exit(int* args, struct process_control_block* pcb)
     pcb->status = PROC_DEAD;
     pcb->exit_code = *args;
 
+    // print a message if debugging is enabled
     if (DEBUGGING) {
         char msg[34] = "process    exited with code   ";
 
@@ -119,10 +133,12 @@ optional_int ecall_handle_exit(int* args, struct process_control_block* pcb)
 
 void trap_handle_ecall()
 {
+    // save current clock so we don't waste too much process time
     mark_ecall_entry();
+    // get the current process
     struct process_control_block* pcb = get_current_process();
     int *regs = pcb->regs;
-    int code = regs[REG_A0 + 7];    // code is stored inside a7
+    int code = regs[REG_A0 + 7];    // syscall code is stored inside a7
 
     // check if the code is too large/small or if the handler is zero
     if (code < 0 || code > ECALL_TABLE_LEN || ecall_table[code] == NULL) {
@@ -154,7 +170,7 @@ void trap_handle(int interrupt_bit, int code, int mtval)
             scheduler_run_next();
             break;
         default:
-            // impossible
+            // any other interrupt is not supported currently
             HALT(12);
             break;
         }
@@ -187,6 +203,8 @@ void trap_handle(int interrupt_bit, int code, int mtval)
     __builtin_unreachable();
 }
 
+// this writes the function pointers to the ecall table
+// it's called from the kernels init() function
 void init_ecall_table()
 {
     ecall_table[ECALL_SPAWN] = ecall_handle_spawn_thread;
@@ -196,6 +214,8 @@ void init_ecall_table()
     ecall_table[ECALL_EXIT] = ecall_handle_exit;
 }
 
+// this exception handler is crude and just kills off any process who
+// causes an exception.
 void handle_exception(int ecode, int mtval)
 {
     // kill off offending process

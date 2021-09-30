@@ -26,7 +26,11 @@ char* itoa(int value, char* str, int base);
 
 int thread(void* args);
 
-__attribute__((naked)) struct optional_int spawn(int (*target)(void*), void* args) {
+// ignore unused parameter errors only for these functions
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+__attribute__((naked)) struct optional_int spawn(int (*target)(void*), void* args)
+{
     __asm__ (
          "li a7, 1\n"
          "ecall\n"
@@ -35,7 +39,8 @@ __attribute__((naked)) struct optional_int spawn(int (*target)(void*), void* arg
     __builtin_unreachable();
 }
 
-__attribute__((naked)) struct optional_int join(int pid, int timeout) {
+__attribute__((naked)) struct optional_int join(int pid, int timeout)
+{
     __asm__ (
          "li a7, 3\n"
          "ecall\n"
@@ -45,7 +50,8 @@ __attribute__((naked)) struct optional_int join(int pid, int timeout) {
 }
 
 
-__attribute__((naked)) struct optional_int sleep(int timeout) {
+__attribute__((naked)) struct optional_int sleep(int timeout)
+{
     __asm__ (
          "li a7, 2\n"
          "ecall\n"
@@ -53,3 +59,4 @@ __attribute__((naked)) struct optional_int sleep(int timeout) {
     );
     __builtin_unreachable();
 }
+#pragma GCC diagnostic pop

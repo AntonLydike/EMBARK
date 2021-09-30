@@ -20,8 +20,8 @@ struct process_control_block* get_current_process();
 void mark_ecall_entry();
 
 // process creation / destruction
-optional_pcbptr create_new_process(loaded_binary*, int);
-optional_pcbptr create_new_thread(struct process_control_block*, void*, void*, int);
+optional_pcbptr create_new_process(loaded_binary*);
+optional_pcbptr create_new_thread(struct process_control_block*, void*, void*);
 void destroy_process(struct process_control_block* pcb);
 void kill_child_processes(struct process_control_block* pcb);
 #endif

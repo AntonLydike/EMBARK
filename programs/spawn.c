@@ -110,22 +110,6 @@ char* itoa(int value, char* str, int base)
     return str;
 }
 
-void wrap_main()
-{
-    dbgln("start", 5);
-
-    register int code asm ("s1") = main();
-
-    dbgln("end", 3);
-
-    __asm__ __volatile__ (
-         "mv     a0, s1\n"
-         "li     a7, 5\n"
-         "ecall\n"
-         "ebreak\n"
-    );
-}
-
 void _start()
 {
     __asm__ __volatile__ (
@@ -134,6 +118,10 @@ void _start()
           "            la      gp, _gp\n"
           ".option pop\n"
     );
+    __asm__ __volatile__ (
+         "mv     a0, %0\n"
+         "li     a7, 5\n"
+         "ecall\n" :: "r"(main())
+    );
 
-    wrap_main();
 }

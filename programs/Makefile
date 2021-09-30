@@ -11,5 +11,5 @@ spawn:
 thread:
 	$(CC) $(CFLAGS) -o threads threads.c
 
-all: simple spawn threads
+all: simple spawn thread
 

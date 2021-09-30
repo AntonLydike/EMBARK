@@ -1,5 +1,30 @@
 # small makefile for compiling the kernel
 
+### Build configuration:
+# process and binary count
+PROCESS_COUNT = 8
+PACKAGED_BINARY_COUNT = 8
+
+# Define the maximum number of binaries packaged with the kernel
+PACKAGED_BINARY_COUNT = 4
+
+# Comment this out if you don't have any text IO device memory mapped
+CFLAGS += -DTEXT_IO_ADDR=0xff0000 -DTEXT_IO_BUFLEN=64
+
+# If you want to build without any extension, you can uncomment the next line
+#CFLAGS += -D__risc_no_ext=1
+# also change this to represent your target RISC-V architecture and extensions
+ARCH = rv32im
+
+# Configure if mtime is memory-mapped or inside a CSR:
+# replace 0xFF11FF22FF33 with the correct address
+#CFLAGS += -DTIMECMP_IN_MEMORY=1 -DTIMECMP_MEM_ADDR=0xFF11FF22
+
+# Set this to the first out-of-bounds memory address
+END_OF_USABLE_MEM=0xff0000
+
+### End configuration
+
 # kernel lib dir
 KLIBDIR=kinclude
 # object file dir
@@ -11,31 +36,9 @@ GCC_PREF=riscv32-unknown-elf-
 
 CC=$(GCC_PREF)gcc
 OBJDUMP=$(GCC_PREF)objdump
-CFLAGS=-I$(KLIBDIR) -MD -mcmodel=medany -Wall -Wextra -pedantic-errors -Wno-builtin-declaration-mismatch
+CFLAGS+=-I$(KLIBDIR) -MD -mcmodel=medany -Wall -Wextra -pedantic-errors -Wno-builtin-declaration-mismatch -march=$(ARCH)
 KERNEL_CFLAGS=-nostdlib -T linker.ld
-ARCH = rv32im
-
-### Build configuration:
-# Define the maximum number of running processes
-PROCESS_COUNT = 8
-
-# Define the maximum number of binaries packaged with the kernel
-PACKAGED_BINARY_COUNT = 4
-
-# Comment this out if you don't have any text IO device memory mapped
-CFLAGS += -DTEXT_IO_ADDR=0xff0000 -DTEXT_IO_BUFLEN=64
-
-# Uncomment these to build with only the rv32i standard
-#CFLAGS += -D__risc_no_ext=1
-#ARCH = rv32i
-
-# Configure if mtime is memory-mapped or inside a CSR:
-# replace 0xFF11FF22FF33 with the correct address
-#CFLAGS += -DTIMECMP_IN_MEMORY=1 -DTIMECMP_MEM_ADDR=0xFF11FF22
-
-
-### End configuration
-CFLAGS += -march=$(ARCH) -DPROCESS_COUNT=$(PROCESS_COUNT) -DNUM_BINARIES=$(PACKAGED_BINARY_COUNT)
+CFLAGS+=-DPROCESS_COUNT=$(PROCESS_COUNT) -DPACKAGED_BINARY_COUNT=$(PACKAGED_BINARY_COUNT) -DEND_OF_USABLE_MEM=$(END_OF_USABLE_MEM)
 
 # dependencies that need to be built:
 _DEPS = ecall.c csr.c sched.c io.c malloc.c
