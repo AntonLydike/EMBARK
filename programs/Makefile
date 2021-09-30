@@ -8,5 +8,8 @@ simple:
 spawn:
 	$(CC) $(CFLAGS) -o spawn spawn.c
 
-all: simple spawn
+thread:
+	$(CC) $(CFLAGS) -o threads threads.c
+
+all: simple spawn threads
 
