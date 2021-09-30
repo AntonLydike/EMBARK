@@ -41,7 +41,7 @@ inline __attribute__((always_inline)) unsigned long long int read_time()
 {
     unsigned int lower, higher;
 
-    __asm__ (
+    __asm__ volatile(
          "csrr %0, %2\n"
          "csrr %1, %3\n"
          : "=r"(lower), "=r"(higher)

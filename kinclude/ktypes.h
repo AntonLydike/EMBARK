@@ -124,6 +124,10 @@ struct voidptr_stack {
     int size;
 };
 
+inline void* voidptr_stack_pop(struct voidptr_stack* stack) __attribute__((always_inline));
+inline int voidptr_stack_push(struct voidptr_stack* stack, void* ptr) __attribute__((always_inline));
+inline void voidptr_stack_new(struct voidptr_stack* stack, void** data, int size) __attribute__((always_inline));
+
 inline void* voidptr_stack_pop(struct voidptr_stack* stack)
 {
     if (stack->pos == -1)

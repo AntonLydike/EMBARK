@@ -95,8 +95,8 @@ struct process_control_block* scheduler_select_free()
                 if (pcb->waiting_for_process != NULL &&
                     pcb->waiting_for_process->status == PROC_DEAD) {
                     // the requested process exited, so we can set the status code and
-                    pcb->regs[REG_A0] = pcb->waiting_for_process->exit_code;
-                    pcb->regs[REG_A0 + 1] = 0;
+                    pcb->regs[REG_A0] = 0;
+                    pcb->regs[REG_A0 + 1] = pcb->waiting_for_process->exit_code;
                     pcb->status = PROC_RDY;
                     return pcb;
                 }

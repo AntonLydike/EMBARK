@@ -1,4 +1,5 @@
 #include "../kernel.h"
+#include "ktypes.h"
 #include "malloc.h"
 #include "ecall.h"
 #include "io.h"

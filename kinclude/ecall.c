@@ -131,8 +131,8 @@ void trap_handle_ecall()
         // run the corresponding ecall handler
         optional_int handler_result = ecall_table[code](&regs[REG_A0], pcb);
         // populate registers with return value and error
-        regs[REG_A0] = handler_result.value;
-        regs[REG_A0 + 1] = handler_result.error;
+        regs[REG_A0] = handler_result.error;
+        regs[REG_A0 + 1] = handler_result.value;
     }
 
     // increment pc of this process to move past ecall instruction
