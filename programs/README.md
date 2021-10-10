@@ -2,8 +2,9 @@
 
 Note that these programs are of poor quality.
 
-* `simple.c` does some arithmetic in a loop, occasionally prints something rather random (the sequence goes `90,90,90,2386,2386,ae86,520c,1cbdc,1cbde...`)
-* `spawn.c` this thing spawn a new thread and exits when the thread overwrites a value.
+* `simple.c` does some arithmetic in a loop and prints some numbers.
+* `spawn.c` this programs spawns a new thread and exits when the thread overwrites a value.
+* `threads.c` this program spawns two threads and waits for them to exit. The threads sleep for some time before exiting.
 
 ## Compiling
 

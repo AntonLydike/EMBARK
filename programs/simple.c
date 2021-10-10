@@ -13,6 +13,7 @@ int main()
     int a = 144;
 
     while (1) {
+        // do some nonsense calculation just to be busy
         for (int i = 0; i < 10000; i++) {
             for (int j = 0; j < 10000; j++) {
                 a ^= (((a << 16) ^ a) & i) << 4;
