@@ -14,7 +14,7 @@ CFLAGS += -DTEXT_IO_ADDR=0xff0000 -DTEXT_IO_BUFLEN=64
 # If you want to build without any extension, you can uncomment the next line
 #CFLAGS += -D__risc_no_ext=1
 # also change this to represent your target RISC-V architecture and extensions
-ARCH = rv32im
+ARCH = rv32im_zicsr
 
 # Configure if mtime is memory-mapped or inside a CSR:
 # replace 0xFF11FF22FF33 with the correct address

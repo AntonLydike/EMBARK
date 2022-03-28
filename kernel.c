@@ -1,10 +1,10 @@
 #include "kernel.h"
-#include "ktypes.h"
-#include "ecall.h"
-#include "sched.h"
-#include "io.h"
-#include "malloc.h"
-#include "csr.h"
+#include "kinclude/ktypes.h"
+#include "kinclude/ecall.h"
+#include "kinclude/sched.h"
+#include "kinclude/io.h"
+#include "kinclude/malloc.h"
+#include "kinclude/csr.h"
 
 void read_binary_table();
 void setup_mem_protection();

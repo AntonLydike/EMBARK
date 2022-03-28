@@ -2,7 +2,8 @@
 from dataclasses import dataclass
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import Section, SymbolTableSection
-from typing import List, Tuple, Dict, Generator, Union
+from typing import List, Tuple, Dict, Generator, Union, Set
+from collections import defaultdict
 
 import os, sys
 import json
@@ -50,6 +51,101 @@ def overlaps(p1, l1, p2, l2) -> bool:
     """
     return (p1 <= p2 and p1 + l1 > p2) or (p2 <= p1 and p2 + l2 > p1)
 
+class MemoryImageDebugInfos:
+    """
+    This defines the riscemu debug information format.
+
+    See the riscemu project for more detail.
+    """
+
+    VERSION = '1'
+    """
+    Schema version
+    """
+
+    base: int = 0
+    """
+    The base address where the image starts. Defaults to zero.
+    """
+
+    sections: Dict[str, Dict[str, Tuple[int, int]]]
+    """
+    This dictionary maps a program and section to (start address, section length)
+    """
+
+    symbols: Dict[str, Dict[str, int]]
+    """
+    This dictionary maps a program and a symbol to a value
+    """
+
+    globals: Dict[str, Set[str]]
+    """
+    This dictionary contains the list of all global symbols of a given program
+    """
+
+    def __init__(self,
+                 sections: Dict[str, Dict[str, Tuple[int, int]]],
+                 symbols: Dict[str, Dict[str, int]],
+                 globals: Dict[str, Set[str]],
+                 base: int = 0
+                 ):
+        self.sections = sections
+        self.symbols = symbols
+        self.globals = globals
+        self.base = base
+
+    def serialize(self) -> str:
+        def serialize(obj: any) -> str:
+            if isinstance(obj, defaultdict):
+                return dict(obj)
+            if isinstance(obj, (set, tuple)):
+                return list(obj)
+            return "<<unserializable {}>>".format(getattr(obj, '__qualname__', '{unknown}'))
+
+        return json.dumps(
+            dict(
+                sections=self.sections,
+                symbols=self.symbols,
+                globals=self.globals,
+                base=self.base,
+                VERSION=self.VERSION
+            ),
+            default=serialize,
+            indent=2
+        )
+
+    def add_section(self, program: str, name: str, start: int, length: str):
+        self.sectionss[program][name] = (start, length)
+
+    def add_symbol(self, program: str, name: str, val: int):
+        self.symbols[program][name] = val
+
+    @classmethod
+    def load(cls, serialized_str: str) -> 'MemoryImageDebugInfos':
+        json_obj: dict = json.loads(serialized_str)
+
+        if 'VERSION' not in json_obj:
+            raise RuntimeError("Unknown MemoryImageDebugInfo version!")
+
+        version: str = json_obj.pop('VERSION')
+
+        # compare major version
+        if version != cls.VERSION or version.split('.')[0] != cls.VERSION.split('.')[0]:
+            raise RuntimeError(
+                "Unknown MemoryImageDebugInfo version! This emulator expects version {}, debug info version {}".format(
+                    cls.VERSION, version
+                )
+            )
+
+        return MemoryImageDebugInfos(**json_obj)
+
+    @classmethod
+    def builder(cls) -> 'MemoryImageDebugInfos':
+        return MemoryImageDebugInfos(
+            defaultdict(dict), defaultdict(dict), defaultdict(set)
+        )
+
+
 class Section:
     name: str
     start: int
@@ -76,12 +172,16 @@ class Bin:
     name: str
     secs: List[Section]
     symtab: Dict[str, int]
+    global_symbols: List[str]
     entry: int
     start: int
 
     def __init__(self, name):
         self.name = name
         self.secs = list()
+        self.symtab = dict()
+        self.global_symbols = list()
+
         with open(self.name, 'rb') as f:
             elf = ELFFile(f)
             if not elf.header.e_machine == 'EM_RISCV':
@@ -93,9 +193,14 @@ class Bin:
                 if sec.name in INCLUDE_THESE_SECTIONS:
                     self.secs.append(Section(sec) )
                 if isinstance(sec, SymbolTableSection):
-                    self.symtab = {
-                        sym.name: sym.entry.st_value for sym in sec.iter_symbols() if sym.name
-                    }
+                    for sym in sec.iter_symbols():
+                        if not sym.name:
+                            continue
+                        
+                        self.symtab[sym.name] = sym.entry.st_value
+
+                        if sym.entry.st_info.bind == 'STB_GLOBAL':
+                            self.global_symbols.append(sym.name)
 
             self.secs = sorted(self.secs, key=lambda sec: sec.start)
             self.start = self.secs[0].start
@@ -113,15 +218,12 @@ class MemImageCreator:
     """
     data: bytes
     patches: List[Tuple[int, bytes]]
-    dbg_nfo: Dict
+    dbg_nfo: MemoryImageDebugInfos
 
     def __init__(self):
         self.data = b''
         self.patches = list()
-        self.dbg_nfo = {
-            'sections': dict(),
-            'symbols': dict()
-        }
+        self.dbg_nfo = MemoryImageDebugInfos.builder()
 
     def seek(self, pos):
         if len(self.data) > pos:
@@ -140,7 +242,8 @@ class MemImageCreator:
     def put(self, stuff: bytes, parent: str, name: str) -> int:
         pos = len(self.data)
         self.data += stuff
-        self.dbg_nfo['sections'][pos] = parent + ':' + name
+        if parent:
+            self.dbg_nfo.sections[parent][name] = (pos, len(stuff))
         return pos
 
     def putBin(self, bin: Bin) -> int:
@@ -150,11 +253,12 @@ class MemImageCreator:
             self.seek(img_pos)
             print(f"  - section {sec.name:<6} {img_pos:x}:{img_pos + sec.size:x}")
             self.put(sec.data, bin.name, sec.name)
-        self.dbg_nfo['symbols'][bin.name] = {
+        self.dbg_nfo.symbols[bin.name] = {
             name: bin_start + val - bin.start
             for name, val in sorted(bin.symtab.items(), key=lambda x:x[1])
             if val != 0
         }
+        self.dbg_nfo.globals[bin.name] = set(bin.global_symbols)
         return bin_start
 
     def patch(self, pos, bytes):
@@ -184,13 +288,12 @@ class MemImageCreator:
                 print(f" - data  {pos:x}:{len(self.data):x}")
                 f.write(self.data[pos : len(self.data)])
             if len(self.data) % SECTOR_SIZE != 0:
-                self.dbg_nfo['sections'][len(self.data)] = ':.empty'
                 print(f" - zeros {len(self.data):x}:{(SECTOR_SIZE - (len(self.data) % SECTOR_SIZE))+len(self.data):x}")
                 f.write(bytes(SECTOR_SIZE - (len(self.data) % SECTOR_SIZE)))
         # done!
         print(f"writing debug info to {fname}.dbg")
         with open(fname + '.dbg', 'w') as f:
-            json.dump(self.dbg_nfo, f, indent = 2)
+            f.write(self.dbg_nfo.serialize())
 
 
 def package(kernel: str, binaries: List[str], out: str):
